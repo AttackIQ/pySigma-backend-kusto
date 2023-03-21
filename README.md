@@ -27,6 +27,52 @@ This backend is currently maintained by:
 
 * [Stephen Lincoln](https://github.com/slincoln-aiq) via [AttackIQ](https://github.com/AttackIQ)
 
+# Usage
+### sigma-cli
+Use with `sigma-cli` per [typical sigma-cli usage](https://github.com/SigmaHQ/sigma-cli#usage):
+
+```bash
+sigma convert -t microsoft365defender -f default -s ~/sigma/rules
+```
+
+### pySigma
+Use the backend and pipeline in a standalone Python script. Note, the backend automatically applies the pipeline, but you can manually add it if you would like:
+
+```python
+from sigma.rule import SigmaRule
+from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
+from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
+
+# Define an example rule as a YAML str
+sigma_rule = SigmaRule.from_yaml("""
+  title: Mimikatz CommandLine
+  status: test
+  logsource:
+      category: process_creation
+      product: windows
+  detection:
+      sel:
+          CommandLine|contains: mimikatz.exe
+      condition: sel
+""")
+# Create backend, which automatically adds the pipeline
+m365def_backend = Microsoft365DefenderBackend()
+
+# Or apply the pipeline manually
+pipeline = microsoft_365_defender_pipeline()
+pipeline.apply(sigma_rule)
+
+# Convert the rule
+print(sigma_rule.title + " KQL Query: \n")
+print(m365def_backend.convert_rule(sigma_rule)[0])
+```
+Output:
+```
+Mimikatz CommandLine KQL Query: 
+
+DeviceProcessEvents
+| where ProcessCommandLine contains "mimikatz.exe"
+````
 ## Rule Support
 
 The following `category` types are currently supported for only `product=windows`:
