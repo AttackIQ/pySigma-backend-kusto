@@ -1,4 +1,4 @@
-![Tests](https://github.com/slincoln-aiq/pySigma-backend-microsoft365defender/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/AttackIQ/pySigma-backend-microsoft365defender/actions/workflows/test.yml/badge.svg)
 ![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/slincoln-aiq/9c0879725c7f94387801390bbb0ac8d6/raw/slincoln-aiq-pySigma-backend-microsoft365defender.json)
 ![Status](https://img.shields.io/badge/Status-pre--release-orange)
 
