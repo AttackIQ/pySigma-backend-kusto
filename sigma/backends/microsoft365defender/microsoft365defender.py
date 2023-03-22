@@ -8,23 +8,24 @@ from sigma.types import SigmaCompareExpression, SigmaString
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 import sigma
 import re
-from typing import ClassVar, Dict, Tuple, Pattern, List, Any, Union
+from typing import ClassVar, Dict, Tuple, Pattern, Any, Union
 
 
 class Microsoft365DefenderBackend(TextQueryBackend):
     """Microsoft 365 Defender KQL Backend"""
 
+    # Automatically apply pipeline
     backend_processing_pipeline: ClassVar[ProcessingPipeline] = microsoft_365_defender_pipeline()
 
-    # Operator precedence: tuple of Condition{AND,OR,NOT} in order of precedence.
     # The backend generates grouping if required
     name: ClassVar[str] = "Microsoft 365 Defender backend"
     formats: Dict[str, str] = {
         "default": "KQL for Microsoft 365 Defender Advanced Hunting queries",
     }
 
-    # requires_pipeline: bool = False  # TODO: does the backend requires that a processing pipeline is provided? This information can be used by user interface programs like Sigma CLI to warn users about inappropriate usage of the backend.
+    requires_pipeline: bool = False  # m365 pipeline is automatically applied
 
+    # Operator precedence
     precedence: ClassVar[Tuple[ConditionItem, ConditionItem, ConditionItem]] = (ConditionNOT, ConditionOR, ConditionAND)
     group_expression: ClassVar[
         str] = "({expr})"  # Expression for precedence override grouping as format string with {expr} placeholder
@@ -128,15 +129,20 @@ class Microsoft365DefenderBackend(TextQueryBackend):
 
     # TODO: implement custom methods for query elements not covered by the default backend base.
     # Documentation: https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html
+
+    # We use =~ for eq_token so everything is case insensitive. But this cannot be used with ints/numbers in queries
+    # So we can define a new token to use for SigmaNumeric types and override convert_condition_field_eq_val_num
+    # to use it
     num_eq_token: ClassVar[str] = " == "
 
     # Override methods
     #  For numeric values, need == instead of =~
-    def convert_condition_field_eq_val_num(self, cond : ConditionFieldEqualsValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+    def convert_condition_field_eq_val_num(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
+            Union[str, DeferredQueryExpression]:
         """Conversion of field = number value expressions"""
         try:
             return self.escape_and_quote_field(cond.field) + self.num_eq_token + str(cond.value)
-        except TypeError:       # pragma: no cover
+        except TypeError:  # pragma: no cover
             raise NotImplementedError("Field equals numeric value expressions are not supported by the backend.")
 
     def convert_condition_as_in_expression(self,
@@ -183,6 +189,8 @@ class Microsoft365DefenderBackend(TextQueryBackend):
         """
         Finalize conversion result of a query. The classes default behavior is to just return the query.
         We will add the table name to the beginning of the query based on the category of the rule.
+        This is taken from the ProcessingPipeline state, which is why we automatically run the
+        pipeline as part of the backend.
         """
         query_table = state.processing_state.get('query_table', None)
         query_table = query_table + "\n| where " if query_table else "search "
