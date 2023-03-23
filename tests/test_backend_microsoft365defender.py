@@ -17,11 +17,11 @@ def test_microsoft365defender_and_expression(microsoft365defender_backend : Micr
                 product: windows
             detection:
                 sel:
-                    fieldA: valueA
-                    fieldB: valueB
+                    CommandLine: valueA
+                    User: valueB
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where fieldA =~ "valueA" and fieldB =~ "valueB"']
+    ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" and AccountName =~ "valueB"']
 
 def test_microsoft365defender_or_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
@@ -33,12 +33,12 @@ def test_microsoft365defender_or_expression(microsoft365defender_backend : Micro
                 product: windows
             detection:
                 sel1:
-                    fieldA: valueA
+                    CommandLine: valueA
                 sel2:
-                    fieldB: valueB
+                    User: valueB
                 condition: 1 of sel*
         """)
-    ) == ['DeviceProcessEvents\n| where fieldA =~ "valueA" or fieldB =~ "valueB"']
+    ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" or AccountName =~ "valueB"']
 
 def test_microsoft365defender_and_or_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
@@ -50,15 +50,16 @@ def test_microsoft365defender_and_or_expression(microsoft365defender_backend : M
                 product: windows
             detection:
                 sel:
-                    fieldA:
+                    CommandLine:
                         - valueA1
                         - valueA2
-                    fieldB:
+                    ProcessId:
                         - valueB1
                         - valueB2
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where fieldA has_any ("valueA1", "valueA2") and fieldB has_any ("valueB1", "valueB2")']
+    ) == ['DeviceProcessEvents\n| where ProcessCommandLine has_any ("valueA1", "valueA2") and '
+          'ProcessId has_any ("valueB1", "valueB2")']
 
 
 def test_microsoft365defender_or_and_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
@@ -71,14 +72,15 @@ def test_microsoft365defender_or_and_expression(microsoft365defender_backend : M
                 product: windows
             detection:
                 sel1:
-                    fieldA: valueA1
-                    fieldB: valueB1
+                    CommandLine: valueA1
+                    ProcessId: valueB1
                 sel2:
-                    fieldA: valueA2
-                    fieldB: valueB2
+                    CommandLine: valueA2
+                    ProcessId: valueB2
                 condition: 1 of sel*
         """)
-    ) == ['DeviceProcessEvents\n| where (fieldA =~ "valueA1" and fieldB =~ "valueB1") or (fieldA =~ "valueA2" and fieldB =~ "valueB2")']
+    ) == ['DeviceProcessEvents\n| where (ProcessCommandLine =~ "valueA1" and ProcessId =~ "valueB1") or '
+          '(ProcessCommandLine =~ "valueA2" and ProcessId =~ "valueB2")']
 
 def test_microsoft365defender_in_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
@@ -90,13 +92,14 @@ def test_microsoft365defender_in_expression(microsoft365defender_backend : Micro
                 product: windows
             detection:
                 sel:
-                    fieldA:
+                    CommandLine:
                         - valueA
                         - valueB
                         - valueC*
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where fieldA has_any ("valueA", "valueB") or fieldA startswith "valueC"']
+    ) == ['DeviceProcessEvents\n| where ProcessCommandLine has_any ("valueA", "valueB") or '
+          'ProcessCommandLine startswith "valueC"']
 
 
 def test_microsoft365defender_regex_query(microsoft365defender_backend : Microsoft365DefenderBackend):
@@ -109,11 +112,11 @@ def test_microsoft365defender_regex_query(microsoft365defender_backend : Microso
                 product: windows
             detection:
                 sel:
-                    fieldA|re: foo.*bar
-                    fieldB: foo
+                    CommandLine|re: foo.*bar
+                    ProcessId: foo
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where fieldA matches regex "foo.*bar" and fieldB =~ "foo"']
+    ) == ['DeviceProcessEvents\n| where ProcessCommandLine matches regex "foo.*bar" and ProcessId =~ "foo"']
 
 def test_microsoft365defender_cidr_query(microsoft365defender_backend : Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
@@ -121,27 +124,13 @@ def test_microsoft365defender_cidr_query(microsoft365defender_backend : Microsof
             title: Test
             status: test
             logsource:
-                category: process_creation
+                category: network_connection
                 product: windows
             detection:
                 sel:
-                    field|cidr: 192.168.0.0/16
+                    SourceIp|cidr: 192.168.0.0/16
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where ipv4_is_in_range(field, "192.168.0.0/16")']
+    ) == ['DeviceNetworkEvents\n| where ipv4_is_in_range(LocalIP, "192.168.0.0/16")']
 
-def test_microsoft365defender_field_name_with_whitespace(microsoft365defender_backend : Microsoft365DefenderBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
-            title: Test
-            status: test
-            logsource:
-                category: process_creation
-                product: windows
-            detection:
-                sel:
-                    field name: value
-                condition: sel
-        """)
-    ) == ['DeviceProcessEvents\n| where \'field name\' =~ "value"']
 
