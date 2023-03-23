@@ -7,9 +7,9 @@ from sigma.pipelines.common import logsource_windows_process_creation, \
     logsource_windows_registry_event, logsource_windows_network_connection
 from sigma.processing.transformations import FieldMappingTransformation, \
     RuleFailureTransformation, ReplaceStringTransformation, SetStateTransformation, DetectionItemTransformation, \
-    ValueTransformation
+    ValueTransformation, DetectionItemFailureTransformation
 from sigma.processing.conditions import IncludeFieldCondition, \
-    RuleProcessingItemAppliedCondition
+    RuleProcessingItemAppliedCondition, ExcludeFieldCondition
 from sigma.conditions import ConditionOR
 from sigma.types import SigmaString, SigmaType
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
@@ -17,7 +17,8 @@ from sigma.rule import SigmaDetectionItem, SigmaDetection
 from collections import defaultdict
 
 
-# Custom DetectionItemTransformation to split domain and user, if applicable
+# CUSTOM TRANSFORMATIONS
+## Custom DetectionItemTransformation to split domain and user, if applicable
 class SplitDomainUserTransformation(DetectionItemTransformation):
     """Custom DetectionItemTransformation transformation to split a User field into separate domain and user fields,
     if applicable.  This is to handle the case where the Sysmon `User` field may contain a domain AND username, and
@@ -62,7 +63,7 @@ class SplitDomainUserTransformation(DetectionItemTransformation):
         return SigmaDetection(to_return)
 
 
-# Custom DetectionItemTransformation to regex hash algos/values in Hashes field, if applicable
+## Custom DetectionItemTransformation to regex hash algos/values in Hashes field, if applicable
 class HashesValuesTransformation(DetectionItemTransformation):
     """Custom DetectionItemTransformation to take a list of values in the 'Hashes' field, which are expected to be
     'algo:hash_value', and create new SigmaDetectionItems for each hash type, where the values is a list of
@@ -100,6 +101,7 @@ class HashesValuesTransformation(DetectionItemTransformation):
         return SigmaDetection(detection_items=to_return, item_linking=ConditionOR)
 
 
+## Change ActionType value AFTER field transformations from Sysmon values to DeviceRegistryEvents values
 class RegistryActionTypeValueTransformation(ValueTransformation):
     """Custom ValueTransformation transformation. The Microsoft DeviceRegistryEvents table expect the ActionType to
     be a slightly different set of values than what Sysmon specified, so this will change them to the correct value."""
@@ -117,130 +119,99 @@ class RegistryActionTypeValueTransformation(ValueTransformation):
         return SigmaString(mapped_vals)
 
 
-# Field mappings from Sysmon (where applicable) fields to Advanced Hunting Query fields based on schema in tables
-# See: https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-schema-tables?view=o365-worldwide#learn-the-schema-tables
-
-
-# Consolidate similar event types
-def logsource_windows_file_all():
-    """All logsource_windows_file_* events from common.py"""
-    return [
-        logsource_windows_file_access(),
-        logsource_windows_file_change(),
-        logsource_windows_file_delete(),
-        logsource_windows_file_event(),
-        logsource_windows_file_rename(),
-    ]
-
-
-def logsource_windows_registry_all():
-    """All logsource_windows_registry_* events from common.py"""
-    return [
-        logsource_windows_registry_add(),
-        logsource_windows_registry_delete(),
-        logsource_windows_registry_event(),
-        logsource_windows_registry_set(),
-    ]
-
-
-## FIELD MAPPINGS
-
-device_process_events_field_mappings = {  # process_creation, Sysmon EventID 1 -> DeviceProcessEvents table
-    # ProcessGuid: ?,
-    'ProcessId': 'ProcessId',
-    'Image': 'FolderPath',
-    'FileVersion': 'ProcessVersionInfoProductVersion',
-    'Description': 'ProcessVersionInfoFileDescription',
-    'Product': 'ProcessVersionInfoProductName',
-    'Company': 'ProcessVersionInfoCompanyName',
-    'OriginalFileName': 'ProcessVersionInfoOriginalFileName',
-    'CommandLine': 'ProcessCommandLine',
-    # CurrentDirectory: ?
-    'User': 'AccountName',
-    # LogonGuid: ?
-    'LogonId': 'LogonId',
-    # TerminalSessionId: ?
-    'IntegrityLevel': 'ProcessIntegrityLevel',
-    'sha1': 'SHA1',
-    'sha256': 'SHA256',
-    'md5': 'MD5',
-    # 'ParentProcessGuid': ?,
-    'ParentProcessId': 'InitiatingProcessId',
-    'ParentImage': 'InitiatingProcessFolderPath',
-    'ParentCommandLine': 'InitiatingProcessCommandLine',
-    'ParentUser': 'InitiatingProcessAccountName',
+# FIELD MAPPINGS
+## Field mappings from Sysmon (where applicable) fields to Advanced Hunting Query fields based on schema in tables
+## See: https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-schema-tables?view=o365-worldwide#learn-the-schema-tables
+query_table_field_mappings = {
+    'DeviceProcessEvents': {  # process_creation, Sysmon EventID 1 -> DeviceProcessEvents table
+        # ProcessGuid: ?,
+        'ProcessId': 'ProcessId',
+        'Image': 'FolderPath',
+        'FileVersion': 'ProcessVersionInfoProductVersion',
+        'Description': 'ProcessVersionInfoFileDescription',
+        'Product': 'ProcessVersionInfoProductName',
+        'Company': 'ProcessVersionInfoCompanyName',
+        'OriginalFileName': 'ProcessVersionInfoOriginalFileName',
+        'CommandLine': 'ProcessCommandLine',
+        # CurrentDirectory: ?
+        'User': 'AccountName',
+        # LogonGuid: ?
+        'LogonId': 'LogonId',
+        # TerminalSessionId: ?
+        'IntegrityLevel': 'ProcessIntegrityLevel',
+        'sha1': 'SHA1',
+        'sha256': 'SHA256',
+        'md5': 'MD5',
+        # 'ParentProcessGuid': ?,
+        'ParentProcessId': 'InitiatingProcessId',
+        'ParentImage': 'InitiatingProcessFolderPath',
+        'ParentCommandLine': 'InitiatingProcessCommandLine',
+        'ParentUser': 'InitiatingProcessAccountName',
+    },
+    'DeviceImageLoadEvents': {
+        # 'ProcessGuid': ?,
+        'ProcessId': 'InitiatingProcessId',
+        'Image': 'InitiatingProcessFolderPath',  # File path of the process that loaded the image
+        'ImageLoaded': 'FolderPath',
+        'FileVersion': 'InitiatingProcessVersionInfoProductVersion',
+        'Description': 'InitiatingProcessVersionInfoFileDescription',
+        'Product': 'InitiatingProcessVersionInfoProductName',
+        'Company': 'InitiatingProcessVersionInfoCompanyName',
+        'OriginalFileName': 'InitiatingProcessVersionInfoOriginalFileName',
+        # 'Hashes': ?,
+        'sha1': 'SHA1',
+        'sha256': 'SHA256',
+        'md5': 'MD5',
+        # 'Signed': ?
+        # 'Signature': ?
+        # 'SignatureStatus': ?
+        'User': 'InitiatingProcessAccountName'
+    },
+    'DeviceFileEvents': {  # file_*, Sysmon EventID 11 (create), 23 (delete) -> DeviceFileEvents table
+        # 'ProcessGuid': ?,
+        'ProcessId': 'InitiatingProcessId',
+        'Image': 'InitiatingProcessFolderPath',
+        'TargetFilename': 'FolderPath',
+        # 'CreationUtcTime': 'Timestamp',
+        'User': 'RequestAccountName',
+        # 'Hashes': ?,
+        'sha1': 'SHA1',
+        'sha256': 'SHA256',
+        'md5': 'MD5',
+    },
+    'DeviceNetworkEvents': {  # network_connection, Sysmon EventID 3 -> DeviceNetworkEvents table
+        # 'ProcessGuid': ?,
+        'ProcessId': 'InitiatingProcessId',
+        'Image': 'InitiatingProcessFolderPath',
+        'User': 'InitiatingProcessAccountName',
+        'Protocol': 'Protocol',
+        # 'Initiated': ?,
+        # 'SourceIsIpv6': ?,
+        'SourceIp': 'LocalIP',
+        'SourceHostname': 'DeviceName',
+        'SourcePort': 'LocalPort',
+        # 'SourcePortName': ?,
+        # 'DestinationIsIpv6': ?,
+        'DestinationIp': 'RemoteIP',
+        'DestinationHostname': 'RemoteUrl',
+        'DestinationPort': 'RemotePort',
+        # 'DestinationPortName': ?,
+    },
+    "DeviceRegistryEvents": {
+        # registry_*, Sysmon EventID 12 (create/delete), 13 (value set), 14 (key/value rename) -> DeviceRegistryEvents table,
+        'EventType': 'ActionType',
+        # 'ProcessGuid': ?,
+        'ProcessId': 'InitiatingProcessId',
+        'Image': 'InitiatingProcessFolderPath',
+        'TargetObject': 'RegistryKey',
+        # 'NewName': ?
+        'Details': 'RegistryValueData',
+        'User': 'InitiatingProcessAccountName'
+    }
 }
 
-# Note for network_connection. The DeviceNetworkEvents table uses LocalIP and RemoteIP rather than
-# SourceIP and DestiniationIP. Why? Idk, but we're going to have to assume that the LocalIP is the SourceIP.
-# We may have to add another custom ProcessingItem to add an 'OR' for DestinationIP->LocalIP and SourceIP->RemoteIP
-# as well as the Source/Dest Hostnames and ports
-device_network_events_field_mappings = {  # network_connection, Sysmon EventID 3 -> DeviceNetworkEvents table
-    # 'ProcessGuid': ?,
-    'ProcessId': 'InitiatingProcessId',
-    'Image': 'InitiatingProcessFolderPath',
-    'User': 'InitiatingProcessAccountName',
-    'Protocol': 'Protocol',
-    # 'Initiated': ?,
-    # 'SourceIsIpv6': ?,
-    'SourceIp': 'LocalIP',
-    'SourceHostname': 'DeviceName',
-    'SourcePort': 'LocalPort',
-    # 'SourcePortName': ?,
-    # 'DestinationIsIpv6': ?,
-    'DestinationIp': 'RemoteIP',
-    'DestinationHostname': 'RemoteUrl',
-    'DestinationPort': 'RemotePort',
-    # 'DestinationPortName': ?,
-}
-
-device_image_load_events_field_mapping = {  # image_load, Sysmon EventID 7 -> DeviceImageLoadEvents tabl;e
-    # 'ProcessGuid': ?,
-    'ProcessId': 'InitiatingProcessId',
-    'Image': 'InitiatingProcessFolderPath',  # File path of the process that loaded the image
-    'ImageLoaded': 'FolderPath',
-    'FileVersion': 'InitiatingProcessVersionInfoProductVersion',
-    'Description': 'InitiatingProcessVersionInfoFileDescription',
-    'Product': 'InitiatingProcessVersionInfoProductName',
-    'Company': 'InitiatingProcessVersionInfoCompanyName',
-    'OriginalFileName': 'InitiatingProcessVersionInfoOriginalFileName',
-    # 'Hashes': ?,
-    'sha1': 'SHA1',
-    'sha256': 'SHA256',
-    'md5': 'MD5',
-    # 'Signed': ?
-    # 'Signature': ?
-    # 'SignatureStatus': ?
-    'User': 'InitiatingProcessAccountName'
-}
-
-device_file_events_field_mappings = {  # file_*, Sysmon EventID 11 (create), 23 (delete) -> DeviceFileEvents table
-    # 'ProcessGuid': ?,
-    'ProcessId': 'InitiatingProcessId',
-    'Image': 'InitiatingProcessFolderPath',
-    'TargetFilename': 'FolderPath',
-    # 'CreationUtcTime': 'Timestamp',
-    'User': 'RequestAccountName',
-    # 'Hashes': ?,
-    'sha1': 'SHA1',
-    'sha256': 'SHA256',
-    'md5': 'MD5',
-}
-
-device_registry_events_field_mappings = {
-    # registry_*, Sysmon EventID 12 (create/delete), 13 (value set), 14 (key/value rename) -> DeviceRegistryEvents table,
-    'EventType': 'ActionType',
-    # 'ProcessGuid': ?,
-    'ProcessId': 'InitiatingProcessId',
-    'Image': 'InitiatingProcessFolderPath',
-    'TargetObject': 'RegistryKey',
-    # 'NewName': ?
-    'Details': 'RegistryValueData',
-    'User': 'InitiatingProcessAccountName'
-}
-
-# Generic catch-all field mappings for sysmon -> microsoft 365 defender fields that appear in most tables and
-# haven't been mapped already
+## Generic catch-all field mappings for sysmon -> microsoft 365 defender fields that appear in most tables and
+## haven't been mapped already
 generic_field_mappings = {
     'EventType': 'ActionType',
     'User': 'InitiatingProcessAccountName',
@@ -259,36 +230,40 @@ generic_field_mappings = {
     'Product': 'InitiatingProcessVersionInfoProductName'
 }
 
-#### VALID FIELDS PER TABLE ####
-# Will Implement field checking later once issue with removing fields is figured out
-# dict of {'table_name': [list, of, valid_fields]} for each table
+# VALID FIELDS PER QUERY TABLE
+## Will Implement field checking later once issue with removing fields is figured out, for now it fails the pipeline
+## dict of {'table_name': [list, of, valid_fields]} for each table
 valid_fields_per_table = {
     'DeviceProcessEvents': ['Timestamp', 'DeviceId', 'DeviceName', 'ActionType', 'FileName', 'FolderPath', 'SHA1',
-                            'SHA256', 'MD5', 'FileOriginUrl', 'FileOriginReferrerUrl', 'FileOriginIP',
-                            'PreviousFolderPath', 'PreviousFileName', 'FileSize', 'InitiatingProcessAccountDomain',
-                            'InitiatingProcessAccountName', 'InitiatingProcessAccountSid',
-                            'InitiatingProcessAccountUpn',
-                            'InitiatingProcessAccountObjectId', 'InitiatingProcessMD5', 'InitiatingProcessSHA1',
-                            'InitiatingProcessSHA256', 'InitiatingProcessFolderPath', 'InitiatingProcessFileName',
-                            'InitiatingProcessFileSize', 'InitiatingProcessVersionInfoCompanyName',
-                            'InitiatingProcessVersionInfoProductName', 'InitiatingProcessVersionInfoProductVersion',
+                            'SHA256', 'MD5', 'FileSize', 'ProcessVersionInfoCompanyName',
+                            'ProcessVersionInfoProductName', 'ProcessVersionInfoProductVersion',
+                            'ProcessVersionInfoInternalFileName', 'ProcessVersionInfoOriginalFileName',
+                            'ProcessVersionInfoFileDescription', 'ProcessId', 'ProcessCommandLine',
+                            'ProcessIntegrityLevel', 'ProcessTokenElevation', 'ProcessCreationTime', 'AccountDomain',
+                            'AccountName', 'AccountSid', 'AccountUpn', 'AccountObjectId', 'LogonId',
+                            'InitiatingProcessAccountDomain', 'InitiatingProcessAccountName',
+                            'InitiatingProcessAccountSid', 'InitiatingProcessAccountUpn',
+                            'InitiatingProcessAccountObjectId', 'InitiatingProcessLogonId',
+                            'InitiatingProcessIntegrityLevel', 'InitiatingProcessTokenElevation',
+                            'InitiatingProcessSHA1', 'InitiatingProcessSHA256', 'InitiatingProcessMD5',
+                            'InitiatingProcessFileName', 'InitiatingProcessFileSize',
+                            'InitiatingProcessVersionInfoCompanyName', 'InitiatingProcessVersionInfoProductName',
+                            'InitiatingProcessVersionInfoProductVersion',
                             'InitiatingProcessVersionInfoInternalFileName',
                             'InitiatingProcessVersionInfoOriginalFileName',
                             'InitiatingProcessVersionInfoFileDescription', 'InitiatingProcessId',
                             'InitiatingProcessCommandLine', 'InitiatingProcessCreationTime',
-                            'InitiatingProcessIntegrityLevel', 'InitiatingProcessTokenElevation',
-                            'InitiatingProcessParentId', 'InitiatingProcessParentFileName',
-                            'InitiatingProcessParentCreationTime', 'RequestProtocol', 'RequestSourceIP',
-                            'RequestSourcePort', 'RequestAccountName', 'RequestAccountDomain', 'RequestAccountSid',
-                            'ShareName', 'InitiatingProcessFileSize', 'SensitivityLabel', 'SensitivitySubLabel',
-                            'IsAzureInfoProtectionApplied', 'ReportId', 'AppGuardContainerId', 'AdditionalFields'],
+                            'InitiatingProcessFolderPath', 'InitiatingProcessParentId',
+                            'InitiatingProcessParentFileName', 'InitiatingProcessParentCreationTime',
+                            'InitiatingProcessSignerType', 'InitiatingProcessSignatureStatus', 'ReportId',
+                            'AppGuardContainerId', 'AdditionalFields'],
     'DeviceImageLoadEvents': ['Timestamp', 'DeviceId', 'DeviceName', 'ActionType', 'FileName', 'FolderPath', 'SHA1',
                               'SHA256', 'MD5', 'FileSize', 'InitiatingProcessAccountDomain',
                               'InitiatingProcessAccountName', 'InitiatingProcessAccountSid',
-                              'InitiatingProcessAccountUpn',
-                              'InitiatingProcessAccountObjectId', 'InitiatingProcessIntegrityLevel',
-                              'InitiatingProcessTokenElevation', 'InitiatingProcessSHA1', 'InitiatingProcessSHA256',
-                              'InitiatingProcessMD5', 'InitiatingProcessFileName', 'InitiatingProcessFileSize',
+                              'InitiatingProcessAccountUpn', 'InitiatingProcessAccountObjectId',
+                              'InitiatingProcessIntegrityLevel', 'InitiatingProcessTokenElevation',
+                              'InitiatingProcessSHA1', 'InitiatingProcessSHA256', 'InitiatingProcessMD5',
+                              'InitiatingProcessFileName', 'InitiatingProcessFileSize',
                               'InitiatingProcessVersionInfoCompanyName', 'InitiatingProcessVersionInfoProductName',
                               'InitiatingProcessVersionInfoProductVersion',
                               'InitiatingProcessVersionInfoInternalFileName',
@@ -299,43 +274,38 @@ valid_fields_per_table = {
                               'InitiatingProcessParentFileName', 'InitiatingProcessParentCreationTime', 'ReportId',
                               'AppGuardContainerId'],
     'DeviceFileEvents': ['Timestamp', 'DeviceId', 'DeviceName', 'ActionType', 'FileName', 'FolderPath', 'SHA1',
-                         'SHA256',
-                         'MD5', 'FileOriginUrl', 'FileOriginReferrerUrl', 'FileOriginIP', 'PreviousFolderPath',
-                         'PreviousFileName', 'FileSize', 'InitiatingProcessAccountDomain',
-                         'InitiatingProcessAccountName',
-                         'InitiatingProcessAccountSid', 'InitiatingProcessAccountUpn',
-                         'InitiatingProcessAccountObjectId',
-                         'InitiatingProcessMD5', 'InitiatingProcessSHA1', 'InitiatingProcessSHA256',
-                         'InitiatingProcessFolderPath', 'InitiatingProcessFileName', 'InitiatingProcessFileSize',
-                         'InitiatingProcessVersionInfoCompanyName', 'InitiatingProcessVersionInfoProductName',
-                         'InitiatingProcessVersionInfoProductVersion', 'InitiatingProcessVersionInfoInternalFileName',
-                         'InitiatingProcessVersionInfoOriginalFileName', 'InitiatingProcessVersionInfoFileDescription',
-                         'InitiatingProcessId', 'InitiatingProcessCommandLine', 'InitiatingProcessCreationTime',
+                         'SHA256', 'MD5', 'FileOriginUrl', 'FileOriginReferrerUrl', 'FileOriginIP',
+                         'PreviousFolderPath', 'PreviousFileName', 'FileSize', 'InitiatingProcessAccountDomain',
+                         'InitiatingProcessAccountName', 'InitiatingProcessAccountSid', 'InitiatingProcessAccountUpn',
+                         'InitiatingProcessAccountObjectId', 'InitiatingProcessMD5', 'InitiatingProcessSHA1',
+                         'InitiatingProcessSHA256', 'InitiatingProcessFolderPath', 'InitiatingProcessFileName',
+                         'InitiatingProcessFileSize', 'InitiatingProcessVersionInfoCompanyName',
+                         'InitiatingProcessVersionInfoProductName', 'InitiatingProcessVersionInfoProductVersion',
+                         'InitiatingProcessVersionInfoInternalFileName', 'InitiatingProcessVersionInfoOriginalFileName',
+                         'InitiatingProcessVersionInfoFileDescription', 'InitiatingProcessId',
+                         'InitiatingProcessCommandLine', 'InitiatingProcessCreationTime',
                          'InitiatingProcessIntegrityLevel', 'InitiatingProcessTokenElevation',
-                         'InitiatingProcessParentId',
-                         'InitiatingProcessParentFileName', 'InitiatingProcessParentCreationTime', 'RequestProtocol',
-                         'RequestSourceIP', 'RequestSourcePort', 'RequestAccountName', 'RequestAccountDomain',
-                         'RequestAccountSid', 'ShareName', 'InitiatingProcessFileSize', 'SensitivityLabel',
-                         'SensitivitySubLabel', 'IsAzureInfoProtectionApplied', 'ReportId', 'AppGuardContainerId',
-                         'AdditionalFields'],
+                         'InitiatingProcessParentId', 'InitiatingProcessParentFileName',
+                         'InitiatingProcessParentCreationTime', 'RequestProtocol', 'RequestSourceIP',
+                         'RequestSourcePort', 'RequestAccountName', 'RequestAccountDomain', 'RequestAccountSid',
+                         'ShareName', 'InitiatingProcessFileSize', 'SensitivityLabel', 'SensitivitySubLabel',
+                         'IsAzureInfoProtectionApplied', 'ReportId', 'AppGuardContainerId', 'AdditionalFields'],
     'DeviceRegistryEvents': ['Timestamp', 'DeviceId', 'DeviceName', 'ActionType', 'RegistryKey', 'RegistryValueType',
                              'RegistryValueName', 'RegistryValueData', 'PreviousRegistryKey',
-                             'PreviousRegistryValueName',
-                             'PreviousRegistryValueData', 'InitiatingProcessAccountDomain',
-                             'InitiatingProcessAccountName',
-                             'InitiatingProcessAccountSid', 'InitiatingProcessAccountUpn',
-                             'InitiatingProcessAccountObjectId', 'InitiatingProcessSHA1', 'InitiatingProcessSHA256',
-                             'InitiatingProcessMD5', 'InitiatingProcessFileName', 'InitiatingProcessFileSize',
-                             'InitiatingProcessVersionInfoCompanyName', 'InitiatingProcessVersionInfoProductName',
-                             'InitiatingProcessVersionInfoProductVersion',
+                             'PreviousRegistryValueName', 'PreviousRegistryValueData', 'InitiatingProcessAccountDomain',
+                             'InitiatingProcessAccountName', 'InitiatingProcessAccountSid',
+                             'InitiatingProcessAccountUpn', 'InitiatingProcessAccountObjectId', 'InitiatingProcessSHA1',
+                             'InitiatingProcessSHA256', 'InitiatingProcessMD5', 'InitiatingProcessFileName',
+                             'InitiatingProcessFileSize', 'InitiatingProcessVersionInfoCompanyName',
+                             'InitiatingProcessVersionInfoProductName', 'InitiatingProcessVersionInfoProductVersion',
                              'InitiatingProcessVersionInfoInternalFileName',
                              'InitiatingProcessVersionInfoOriginalFileName',
-                             'InitiatingProcessVersionInfoFileDescription',
-                             'InitiatingProcessId', 'InitiatingProcessCommandLine', 'InitiatingProcessCreationTime',
+                             'InitiatingProcessVersionInfoFileDescription', 'InitiatingProcessId',
+                             'InitiatingProcessCommandLine', 'InitiatingProcessCreationTime',
                              'InitiatingProcessFolderPath', 'InitiatingProcessParentId',
-                             'InitiatingProcessParentFileName',
-                             'InitiatingProcessParentCreationTime', 'InitiatingProcessIntegrityLevel',
-                             'InitiatingProcessTokenElevation', 'ReportId', 'AppGuardContainerId'],
+                             'InitiatingProcessParentFileName', 'InitiatingProcessParentCreationTime',
+                             'InitiatingProcessIntegrityLevel', 'InitiatingProcessTokenElevation', 'ReportId',
+                             'AppGuardContainerId'],
     'DeviceNetworkEvents': ['Timestamp', 'DeviceId', 'DeviceName', 'ActionType', 'RemoteIP', 'RemotePort', 'RemoteUrl',
                             'LocalIP', 'LocalPort', 'Protocol', 'LocalIPType', 'RemoteIPType', 'InitiatingProcessSHA1',
                             'InitiatingProcessSHA256', 'InitiatingProcessMD5', 'InitiatingProcessFileName',
@@ -345,129 +315,87 @@ valid_fields_per_table = {
                             'InitiatingProcessVersionInfoOriginalFileName',
                             'InitiatingProcessVersionInfoFileDescription', 'InitiatingProcessId',
                             'InitiatingProcessCommandLine', 'InitiatingProcessCreationTime',
-                            'InitiatingProcessFolderPath',
-                            'InitiatingProcessParentFileName', 'InitiatingProcessParentId',
-                            'InitiatingProcessParentCreationTime', 'InitiatingProcessAccountDomain',
-                            'InitiatingProcessAccountName', 'InitiatingProcessAccountSid',
-                            'InitiatingProcessAccountUpn',
+                            'InitiatingProcessFolderPath', 'InitiatingProcessParentFileName',
+                            'InitiatingProcessParentId', 'InitiatingProcessParentCreationTime',
+                            'InitiatingProcessAccountDomain', 'InitiatingProcessAccountName',
+                            'InitiatingProcessAccountSid', 'InitiatingProcessAccountUpn',
                             'InitiatingProcessAccountObjectId', 'InitiatingProcessIntegrityLevel',
                             'InitiatingProcessTokenElevation', 'ReportId', 'AppGuardContainerId', 'AdditionalFields']}
 
-##### PROCESSING ITEMS #####
-# Group similar ProcessingItem's here for readability
 
-# ProcessingItems to set state key 'query_table' to use in backend
-# i.e. $QueryTable$ | $rest_of_query$
-query_table_items_proc_items = [
-    ProcessingItem(
-        identifier="microsoft_365_defender_set_process_creation_table",
-        transformation=SetStateTransformation("query_table", "DeviceProcessEvents"),
-        rule_conditions=[
-            logsource_windows_process_creation()
-        ],
-    ),
-    ProcessingItem(
-        identifier="microsoft_365_defender_set_image_load_table",
-        transformation=SetStateTransformation("query_table", "DeviceImageLoadEvents"),
-        rule_conditions=[
-            logsource_windows_image_load()
-        ],
-    ),
-    ProcessingItem(
-        identifier="microsoft_365_defender_set_registry_events_table",
-        transformation=SetStateTransformation("query_table", "DeviceRegistryEvents"),
-        rule_conditions=logsource_windows_registry_all(),
-        rule_condition_linking=any,
-    ),
-    ProcessingItem(
-        identifier="microsoft_365_defender_set_file_events_table",
-        transformation=SetStateTransformation("query_table", "DeviceFileEvents"),
-        rule_conditions=logsource_windows_file_all(),
-        rule_condition_linking=any,
-    ),
-    ProcessingItem(
-        identifier="microsoft_365_defender_set_network_connection_table",
-        transformation=SetStateTransformation("query_table", "DeviceNetworkEvents"),
-        rule_conditions=[
-            logsource_windows_network_connection()
-        ],
-    ),
-]
+# OTHER MAPPINGS
+## useful for creating ProcessingItems() with list comprehension
 
-# Keymapping Processing Items
-keymapping_proc_items = [
-    # Process Creation Events
-    ProcessingItem(
-        identifier="microsoft_365_defender_process_creation_fieldmapping",
-        transformation=FieldMappingTransformation(
-            device_process_events_field_mappings
-        ),
-        rule_conditions=[
-            logsource_windows_process_creation()
-        ]
-    ),
+## Query Table names -> rule categories
+table_to_category_mappings = {
+    'DeviceProcessEvents': ['process_creation'],
+    'DeviceImageLoadEvents': ['image_load'],
+    'DeviceFileEvents': ['file_access', 'file_change', 'file_delete', 'file_event', 'file_rename'],
+    'DeviceRegistryEvents': ['registry_add', 'registry_delete', 'registry_event', 'registry_set'],
+    'DeviceNetworkEvents': ['network_connection']
+}
 
-    # Image Load Events
-    ProcessingItem(
-        identifier="microsoft_365_defender_image_load_fieldmapping",
-        transformation=FieldMappingTransformation(
-            device_image_load_events_field_mapping
-        ),
-        rule_conditions=[
-            logsource_windows_image_load()
-        ]
-    ),
+## rule categories -> RuleConditions
+category_to_conditions_mappings = {
+    'process_creation': logsource_windows_process_creation(),
+    'image_load': logsource_windows_image_load(),
+    'file_access': logsource_windows_file_access(),
+    'file_change': logsource_windows_file_change(),
+    'file_delete': logsource_windows_file_delete(),
+    'file_event': logsource_windows_file_event(),
+    'file_rename': logsource_windows_file_rename(),
+    'registry_add': logsource_windows_registry_add(),
+    'registry_delete': logsource_windows_registry_delete(),
+    'registry_event': logsource_windows_registry_event(),
+    'registry_set': logsource_windows_registry_set(),
+    'network_connection': logsource_windows_network_connection()
+}
 
-    # File Events
+# PROCESSING_ITEMS()
+## ProcessingItems to set state key 'query_table' to use in backend
+## i.e. $QueryTable$ | $rest_of_query$
+query_table_proc_items = [
     ProcessingItem(
-        identifier="microsoft_365_defender_file_events_fieldmapping",
-        transformation=FieldMappingTransformation(
-            device_file_events_field_mappings
-        ),
-        rule_conditions=logsource_windows_file_all(),
-        rule_condition_linking=any
-    ),
-
-    # Registry Events
-    ProcessingItem(
-        identifier="microsoft_365_defender_registry_events_fieldmapping",
-        transformation=FieldMappingTransformation(
-            device_registry_events_field_mappings
-        ),
-        rule_conditions=logsource_windows_registry_all(),
-        rule_condition_linking=any
-    ),
-    # Network Events
-    ProcessingItem(
-        identifier="microsoft_365_defender_network_connection_fieldmapping",
-        transformation=FieldMappingTransformation(
-            device_network_events_field_mappings
-        ),
+        identifier=f"microsoft_365_defender_set_query_table_{table_name}",
+        transformation=SetStateTransformation("query_table", table_name),
         rule_conditions=[
-            logsource_windows_network_connection(),
-        ],
-    ),
-    # Generic Fielp Mappings, keep this last
-    # Exclude any fields already mapped. For example, if process_creation events ProcessId has already
-    # been mapped to the same field name (ProcessId), we don't to remap it to InitiatingProcessId
-    ProcessingItem(
-        identifier="microsoft_365_defender_generic_fieldmapping",
-        transformation=FieldMappingTransformation(
-            generic_field_mappings
-        ),
-        rule_conditions=[
-            RuleProcessingItemAppliedCondition("microsoft_365_defender_process_creation_fieldmapping"),
-            RuleProcessingItemAppliedCondition("microsoft_365_defender_image_load_fieldmapping"),
-            RuleProcessingItemAppliedCondition("microsoft_365_defender_file_events_fieldmapping"),
-            RuleProcessingItemAppliedCondition("microsoft_365_defender_registry_events_fieldmapping"),
-            RuleProcessingItemAppliedCondition("microsoft_365_defender_network_connection_fieldmapping")
+            category_to_conditions_mappings[rule_category] for rule_category in rule_categories
         ],
         rule_condition_linking=any,
-        rule_condition_negation=True,
     )
+    for table_name, rule_categories in table_to_category_mappings.items()
 ]
 
-# Field Value Replacements ProcessingItems
+## Fieldmappings
+fieldmappings_proc_items = [
+    ProcessingItem(
+        identifier=f"microsoft_365_defender_fieldmappings_{table_name}",
+        transformation=FieldMappingTransformation(query_table_field_mappings[table_name]),
+        rule_conditions=[
+            category_to_conditions_mappings[rule_category] for rule_category in rule_categories
+        ],
+        rule_condition_linking=any,
+    )
+    for table_name, rule_categories in table_to_category_mappings.items()
+]
+
+## Generic Fielp Mappings, keep this last
+## Exclude any fields already mapped. For example, if process_creation events ProcessId has already
+## been mapped to the same field name (ProcessId), we don't to remap it to InitiatingProcessId
+generic_field_mappings_proc_item = [ProcessingItem(
+    identifier="microsoft_365_defender_fieldmappings_generic",
+    transformation=FieldMappingTransformation(
+        generic_field_mappings
+    ),
+    rule_conditions=[
+        RuleProcessingItemAppliedCondition(f"microsoft_365_defender_fieldmappings_{table_name}")
+        for table_name in table_to_category_mappings.keys()
+    ],
+    rule_condition_linking=any,
+    rule_condition_negation=True,
+)
+]
+## Field Value Replacements ProcessingItems
 replacement_proc_items = [
     # Sysmon uses abbreviations in RegistryKey values, replace with full key names as the DeviceRegistryEvents schema
     # expects them to be
@@ -516,8 +444,9 @@ replacement_proc_items = [
     ),
 ]
 
-# Exceptions/Errors ProcessingItems
-exception_error_proc_items = [
+## Exceptions/Errors ProcessingItems
+rule_error_proc_items = [
+    # Category Not Supported
     ProcessingItem(
         identifier="microsoft_365_defender_unsupported_rule_category",
         rule_condition_linking=any,
@@ -525,12 +454,25 @@ exception_error_proc_items = [
             "Rule category not yet supported by the Microsoft 365 Defender Sigma backend."
         ),
         rule_condition_negation=True,
+        rule_conditions=[x for x in category_to_conditions_mappings.values()],
+    )]
+
+field_error_proc_items = [
+    # Invalid fields per category
+    ProcessingItem(
+        identifier=f"microsoft_365_defender_unsupported_fields_{table_name}",
+        transformation=DetectionItemFailureTransformation(
+            f"The Sigma Rule contains an invalid field for the {table_name} table.\nValid fields: "
+            f"{', '.join(table_fields)}"
+        ),
+        field_name_conditions=[ExcludeFieldCondition(fields=table_fields)],
         rule_conditions=[
-                            logsource_windows_process_creation(),
-                            logsource_windows_image_load(),
-                            logsource_windows_network_connection(),
-                        ] + logsource_windows_file_all() + logsource_windows_registry_all(),
-    ),
+            category_to_conditions_mappings[rule_category]
+            for rule_category in table_to_category_mappings[table_name]
+        ],
+        rule_condition_linking=any,
+    )
+    for table_name, table_fields in valid_fields_per_table.items()
 ]
 
 
@@ -544,9 +486,11 @@ def microsoft_365_defender_pipeline() -> ProcessingPipeline:
     return ProcessingPipeline(
         name="Generic Log Sources to Windows 365 Defender Transformation",
         priority=10,
-        items=[*query_table_items_proc_items,
-               *keymapping_proc_items,
+        items=[*query_table_proc_items,
+               *fieldmappings_proc_items,
+               *generic_field_mappings_proc_item,
                *replacement_proc_items,
-               *exception_error_proc_items,
+               *rule_error_proc_items,
+               *field_error_proc_items,
                ]
     )
