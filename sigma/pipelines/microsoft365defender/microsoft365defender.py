@@ -1,5 +1,6 @@
 from typing import Union, Optional, Iterable
 
+from sigma.exceptions import SigmaTransformationError
 from sigma.pipelines.common import logsource_windows_process_creation, \
     logsource_windows_image_load, logsource_windows_file_event, logsource_windows_file_delete, \
     logsource_windows_file_change, logsource_windows_file_access, logsource_windows_file_rename, \
@@ -117,6 +118,18 @@ class RegistryActionTypeValueTransformation(ValueTransformation):
         if isinstance(mapped_vals, list):
             return [SigmaString(v) for v in mapped_vals]
         return SigmaString(mapped_vals)
+
+
+class InvalidFieldTransformation(DetectionItemFailureTransformation):
+    """
+    Overrides the apply_detection_item() method from DetectionItemFailureTransformation to also include the field name
+    in the error message
+    """
+
+    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> None:
+        field_name = detection_item.field
+        self.message = f"Invalid SigmaDetectionItem field name encountered: {field_name}. " + self.message
+        raise SigmaTransformationError(self.message)
 
 
 # FIELD MAPPINGS
@@ -322,7 +335,6 @@ valid_fields_per_table = {
                             'InitiatingProcessAccountObjectId', 'InitiatingProcessIntegrityLevel',
                             'InitiatingProcessTokenElevation', 'ReportId', 'AppGuardContainerId', 'AdditionalFields']}
 
-
 # OTHER MAPPINGS
 ## useful for creating ProcessingItems() with list comprehension
 
@@ -461,9 +473,11 @@ field_error_proc_items = [
     # Invalid fields per category
     ProcessingItem(
         identifier=f"microsoft_365_defender_unsupported_fields_{table_name}",
-        transformation=DetectionItemFailureTransformation(
-            f"The Sigma Rule contains an invalid field for the {table_name} table.\nValid fields: "
-            f"{', '.join(table_fields)}"
+        transformation=InvalidFieldTransformation(
+            f"Please use valid fields for the {table_name} table, or the following fields that have keymappings in this "
+            f"pipeline:\n"
+            # Combine field mappings for table and generic field mappings dicts, get the unique keys, add the Hashes field, sort it
+            f"{', '.join(sorted(set({**query_table_field_mappings[table_name], **generic_field_mappings}.keys()).union({'Hashes'})))}"
         ),
         field_name_conditions=[ExcludeFieldCondition(fields=table_fields)],
         rule_conditions=[
