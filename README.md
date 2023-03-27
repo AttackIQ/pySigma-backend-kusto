@@ -27,8 +27,26 @@ This backend is currently maintained by:
 
 * [Stephen Lincoln](https://github.com/slincoln-aiq) via [AttackIQ](https://github.com/AttackIQ)
 
-# Usage
+## Installation
+We are working on a full PyPI release of this pySigma Backend. Until then, you can install it via pip by pointing to this repo, or by using the pySigma plugin functionality.
+
+### pip
+```bash
+pip install git+https://github.com/AttackIQ/pySigma-backend-microsoft365defender
+```
+
+### pySigma Plugins (requires pySigma >= 0.9.0)
+```python
+from sigma.plugins import SigmaPluginDirectory  # Requires pySigma >= 0.9.0
+
+plugins = SigmaPluginDirectory.default_plugin_directory()
+plugins.get_plugin_by_id("microsoft365defender").install()
+```
+
+## Usage
+
 ### sigma-cli
+
 Use with `sigma-cli` per [typical sigma-cli usage](https://github.com/SigmaHQ/sigma-cli#usage):
 
 ```bash
@@ -36,7 +54,9 @@ sigma convert -t microsoft365defender -f default -s ~/sigma/rules
 ```
 
 ### pySigma
-Use the backend and pipeline in a standalone Python script. Note, the backend automatically applies the pipeline, but you can manually add it if you would like:
+
+Use the backend and pipeline in a standalone Python script. Note, the backend automatically applies the pipeline, but
+you can manually add it if you would like:
 
 ```python
 from sigma.rule import SigmaRule
@@ -66,13 +86,16 @@ pipeline.apply(sigma_rule)
 print(sigma_rule.title + " KQL Query: \n")
 print(m365def_backend.convert_rule(sigma_rule)[0])
 ```
+
 Output:
+
 ```
 Mimikatz CommandLine KQL Query: 
 
 DeviceProcessEvents
 | where ProcessCommandLine contains "mimikatz.exe"
 ````
+
 ## Rule Support
 
 The following `category` types are currently supported for only `product=windows`:
@@ -99,15 +122,23 @@ the pipeline in the backend:
   matching SigmaDetectionItem.
 
   You should use this with a field_name_condition for `IncludeFieldName(['field', 'names', 'for', 'username']`)
+
+
 * `HashesValuesTransformation`: Custom DetectionItemTransformation to take a list of values in the 'Hashes' field, which
   are expected to be
   'algo:hash_value', and create new SigmaDetectionItems for each hash type, where the values is a list of
   SigmaString hashes. If the hash type is not part of the value, it will be inferred based on length.
 
   Use with field_name_condition for Hashes field
+
+
 * `RegistryActionTypeValueTransformation`: Custom ValueTransformation transformation. The Microsoft DeviceRegistryEvents
   table expect the ActionType to
   be a slightly different set of values than what Sysmon specified, so this will change them to the correct value.
+
+
+* `InvalidFieldTransformation`: Same as `DetectionItemFailureTransformation` in native pySigma transformations.py, but it
+also includes the field name in the error message that caused the error.
 
 ## Limitations and Constraints
 
