@@ -520,7 +520,7 @@ def test_microsoft_365_defender_pipeline_unsupported_rule_type():
 
 def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
     with pytest.raises(SigmaTransformationError,
-                       match="The Sigma Rule contains an invalid field for the DeviceProcessEvents table."):
+                       match="Invalid SigmaDetectionItem field name encountered.*DeviceProcessEvents"):
         Microsoft365DefenderBackend().convert(
             SigmaCollection.from_yaml("""
                 title: test
@@ -539,7 +539,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
 
 def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
     with pytest.raises(SigmaTransformationError,
-                       match="The Sigma Rule contains an invalid field for the DeviceFileEvents table."):
+                       match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
         Microsoft365DefenderBackend().convert(
             SigmaCollection.from_yaml("""
                 title: test
@@ -558,7 +558,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
 
 def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
     with pytest.raises(SigmaTransformationError,
-                       match="The Sigma Rule contains an invalid field for the DeviceImageLoadEvents table."):
+                       match="Invalid SigmaDetectionItem field name encountered.*DeviceImageLoadEvents"):
         Microsoft365DefenderBackend().convert(
             SigmaCollection.from_yaml("""
                 title: test
@@ -577,7 +577,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
 
 def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
     with pytest.raises(SigmaTransformationError,
-                       match="The Sigma Rule contains an invalid field for the DeviceRegistryEvents table."):
+                       match="Invalid SigmaDetectionItem field name encountered.*DeviceRegistryEvents"):
         Microsoft365DefenderBackend().convert(
             SigmaCollection.from_yaml("""
                 title: test
@@ -596,7 +596,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
 
 def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
     with pytest.raises(SigmaTransformationError,
-                       match="The Sigma Rule contains an invalid field for the DeviceNetworkEvents table."):
+                       match="Invalid SigmaDetectionItem field name encountered.*DeviceNetworkEvents"):
         Microsoft365DefenderBackend().convert(
             SigmaCollection.from_yaml("""
                 title: test
