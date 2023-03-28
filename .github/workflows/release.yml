@@ -30,12 +30,12 @@ jobs:
         run: poetry build
       - name: Configure Poetry
         run: |
-          #poetry config repositories.testpypi https://test.pypi.org/legacy/
-          #poetry config pypi-token.testpypi ${{ secrets.TEST_PYPI_API_TOKEN }}
+          poetry config repositories.testpypi https://test.pypi.org/legacy/
+          poetry config pypi-token.testpypi ${{ secrets.TEST_PYPI_API_TOKEN }}
           poetry config pypi-token.pypi "${{ secrets.PYPI_API_TOKEN }}"
-      #- name: Publish to test PyPI
-      #  if: ${{ github.event_name == 'push' }}
-      #  run: poetry publish -r testpypi
+      - name: Publish to test PyPI
+        if: ${{ github.event_name == 'push' }}
+        run: poetry publish -r testpypi
       - name: Publish to PyPI
         if: ${{ github.event_name == 'release' }}
         run: poetry publish
