@@ -28,11 +28,11 @@ This backend is currently maintained by:
 * [Stephen Lincoln](https://github.com/slincoln-aiq) via [AttackIQ](https://github.com/AttackIQ)
 
 ## Installation
-We are working on a full PyPI release of this pySigma Backend. Until then, you can install it via pip by pointing to this repo, or by using the pySigma plugin functionality.
+This pySigma backend can be installed from PyPI via pip, or by using pySigma's plugin functionality
 
 ### pip
 ```bash
-pip install git+https://github.com/AttackIQ/pySigma-backend-microsoft365defender
+pip install pysigma-backend-microsoft365defender
 ```
 
 ### pySigma Plugins (requires pySigma >= 0.9.0)
@@ -42,6 +42,10 @@ from sigma.plugins import SigmaPluginDirectory  # Requires pySigma >= 0.9.0
 plugins = SigmaPluginDirectory.default_plugin_directory()
 plugins.get_plugin_by_id("microsoft365defender").install()
 ```
+
+## Dependencies
+
+* pySigma >= v0.9.0
 
 ## Usage
 
