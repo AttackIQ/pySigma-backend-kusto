@@ -165,6 +165,7 @@ query_table_field_mappings = {
         # 'ProcessGuid': ?,
         'ProcessId': 'InitiatingProcessId',
         'Image': 'InitiatingProcessFolderPath',  # File path of the process that loaded the image
+        'CommandLine': 'InitiatingProcessCommandLine',
         'ImageLoaded': 'FolderPath',
         'FileVersion': 'InitiatingProcessVersionInfoProductVersion',
         'Description': 'InitiatingProcessVersionInfoFileDescription',
@@ -184,6 +185,7 @@ query_table_field_mappings = {
         # 'ProcessGuid': ?,
         'ProcessId': 'InitiatingProcessId',
         'Image': 'InitiatingProcessFolderPath',
+        'CommandLine': 'InitiatingProcessCommandLine',
         'TargetFilename': 'FolderPath',
         # 'CreationUtcTime': 'Timestamp',
         'User': 'RequestAccountName',
@@ -196,6 +198,7 @@ query_table_field_mappings = {
         # 'ProcessGuid': ?,
         'ProcessId': 'InitiatingProcessId',
         'Image': 'InitiatingProcessFolderPath',
+        'CommandLine': 'InitiatingProcessCommandLine',
         'User': 'InitiatingProcessAccountName',
         'Protocol': 'Protocol',
         # 'Initiated': ?,
@@ -216,6 +219,7 @@ query_table_field_mappings = {
         # 'ProcessGuid': ?,
         'ProcessId': 'InitiatingProcessId',
         'Image': 'InitiatingProcessFolderPath',
+        'CommandLine': 'InitiatingProcessCommandLine',
         'TargetObject': 'RegistryKey',
         # 'NewName': ?
         'Details': 'RegistryValueData',
