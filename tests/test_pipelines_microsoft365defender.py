@@ -499,6 +499,25 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
                'ActionType =~ "RegistryValueSet" or '
                'ActionType has_any ("RegistryValueSet", "RegistryKeyCreated")']
 
+    def test_microsoft_365_defender_pipeline_generic_field():
+        """Tests"""
+        assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+            SigmaCollection.from_yaml("""
+                    title: Test
+                    status: test
+                    logsource:
+                        category: file_event
+                        product: windows
+                    detection:
+                        sel1:
+                            CommandLine: whoami
+                            ProcessId: 1  
+                        condition: any of sel*
+                """)
+        ) == [
+                   'DeviceFileEvents\n| '
+                   'where InitiatingProcessCommandLine =~ "whoami" and InitiatingProcessId == 1']
+
 
 def test_microsoft_365_defender_pipeline_unsupported_rule_type():
     with pytest.raises(SigmaTransformationError,
