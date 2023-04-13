@@ -2,12 +2,13 @@ import pytest
 from sigma.collection import SigmaCollection
 from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
 
+
 @pytest.fixture
 def microsoft365defender_backend():
     return Microsoft365DefenderBackend()
 
-# TODO: implement tests for some basic queries and their expected results.
-def test_microsoft365defender_and_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
+
+def test_microsoft365defender_and_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -23,7 +24,8 @@ def test_microsoft365defender_and_expression(microsoft365defender_backend : Micr
         """)
     ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" and AccountName =~ "valueB"']
 
-def test_microsoft365defender_or_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
+
+def test_microsoft365defender_or_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -40,7 +42,8 @@ def test_microsoft365defender_or_expression(microsoft365defender_backend : Micro
         """)
     ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" or AccountName =~ "valueB"']
 
-def test_microsoft365defender_and_or_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
+
+def test_microsoft365defender_and_or_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -62,7 +65,7 @@ def test_microsoft365defender_and_or_expression(microsoft365defender_backend : M
           'ProcessId has_any ("valueB1", "valueB2")']
 
 
-def test_microsoft365defender_or_and_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
+def test_microsoft365defender_or_and_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -82,7 +85,8 @@ def test_microsoft365defender_or_and_expression(microsoft365defender_backend : M
     ) == ['DeviceProcessEvents\n| where (ProcessCommandLine =~ "valueA1" and ProcessId =~ "valueB1") or '
           '(ProcessCommandLine =~ "valueA2" and ProcessId =~ "valueB2")']
 
-def test_microsoft365defender_in_expression(microsoft365defender_backend : Microsoft365DefenderBackend):
+
+def test_microsoft365defender_in_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -102,7 +106,7 @@ def test_microsoft365defender_in_expression(microsoft365defender_backend : Micro
           'ProcessCommandLine startswith "valueC"']
 
 
-def test_microsoft365defender_regex_query(microsoft365defender_backend : Microsoft365DefenderBackend):
+def test_microsoft365defender_regex_query(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -118,7 +122,8 @@ def test_microsoft365defender_regex_query(microsoft365defender_backend : Microso
         """)
     ) == ['DeviceProcessEvents\n| where ProcessCommandLine matches regex "foo.*bar" and ProcessId =~ "foo"']
 
-def test_microsoft365defender_cidr_query(microsoft365defender_backend : Microsoft365DefenderBackend):
+
+def test_microsoft365defender_cidr_query(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -132,5 +137,3 @@ def test_microsoft365defender_cidr_query(microsoft365defender_backend : Microsof
                 condition: sel
         """)
     ) == ['DeviceNetworkEvents\n| where ipv4_is_in_range(LocalIP, "192.168.0.0/16")']
-
-
