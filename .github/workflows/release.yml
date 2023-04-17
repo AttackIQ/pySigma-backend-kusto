@@ -11,17 +11,16 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+      - name: Install Poetry
+        run: pipx install poetry
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
-      - name: Install Poetry
-        uses: abatilo/actions-poetry@v2.0.0
-        with:
-          poetry-version: 1.4.0
+          cache: poetry
       - name: Verify versioning
         run: |
-          [ "$(poetry version -s)" == "${GITHUB_REF#refs/tags/v}" ]
+            [ "$(poetry version -s)" == "${GITHUB_REF#refs/tags/v}" ]
       - name: Install dependencies
         run: poetry install
       - name: Run tests
