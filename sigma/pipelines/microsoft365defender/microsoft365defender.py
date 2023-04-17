@@ -416,25 +416,25 @@ replacement_proc_items = [
     # Do this one first, or else the HKLM only one will replace HKLM and mess up the regex
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_currentcontrolset",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKLM\\SYSTEM\\CurrentControlSet)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKLM\\SYSTEM\\CurrentControlSet)",
                                                    replacement=r"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet001"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_hklm",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKLM)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKLM)",
                                                    replacement=r"HKEY_LOCAL_MACHINE"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_hku",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKU)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKU)",
                                                    replacement=r"HKEY_USERS"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_hkcr",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKCR)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKCR)",
                                                    replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
