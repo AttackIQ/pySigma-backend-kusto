@@ -10,7 +10,7 @@ from sigma.processing.transformations import FieldMappingTransformation, \
     RuleFailureTransformation, ReplaceStringTransformation, SetStateTransformation, DetectionItemTransformation, \
     ValueTransformation, DetectionItemFailureTransformation
 from sigma.processing.conditions import IncludeFieldCondition, \
-    RuleProcessingItemAppliedCondition, ExcludeFieldCondition
+    RuleProcessingItemAppliedCondition, ExcludeFieldCondition, DetectionItemProcessingItemAppliedCondition
 from sigma.conditions import ConditionOR
 from sigma.types import SigmaString, SigmaType
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
@@ -399,12 +399,12 @@ generic_field_mappings_proc_item = [ProcessingItem(
     transformation=FieldMappingTransformation(
         generic_field_mappings
     ),
-    rule_conditions=[
-        RuleProcessingItemAppliedCondition(f"microsoft_365_defender_fieldmappings_{table_name}")
+    detection_item_conditions=[
+        DetectionItemProcessingItemAppliedCondition(f"microsoft_365_defender_fieldmappings_{table_name}")
         for table_name in table_to_category_mappings.keys()
     ],
-    rule_condition_linking=any,
-    rule_condition_negation=True,
+    detection_item_condition_linking=any,
+    detection_item_condition_negation=True,
 )
 ]
 ## Field Value Replacements ProcessingItems
@@ -416,25 +416,25 @@ replacement_proc_items = [
     # Do this one first, or else the HKLM only one will replace HKLM and mess up the regex
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_currentcontrolset",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKLM\\SYSTEM\\CurrentControlSet)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKLM\\SYSTEM\\CurrentControlSet)",
                                                    replacement=r"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet001"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_hklm",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKLM)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKLM)",
                                                    replacement=r"HKEY_LOCAL_MACHINE"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_hku",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKU)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKU)",
                                                    replacement=r"HKEY_USERS"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
     ProcessingItem(
         identifier="microsoft_365_defender_registry_key_replace_hkcr",
-        transformation=ReplaceStringTransformation(regex=r"((?i)^HKCR)",
+        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKCR)",
                                                    replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"),
         field_name_conditions=[IncludeFieldCondition(['RegistryKey', 'PreviousRegistryKey'])]
     ),
@@ -479,7 +479,8 @@ field_error_proc_items = [
             # Combine field mappings for table and generic field mappings dicts, get the unique keys, add the Hashes field, sort it
             f"{', '.join(sorted(set({**query_table_field_mappings[table_name], **generic_field_mappings}.keys()).union({'Hashes'})))}"
         ),
-        field_name_conditions=[ExcludeFieldCondition(fields=table_fields)],
+        field_name_conditions=[
+            ExcludeFieldCondition(fields=table_fields + list(generic_field_mappings.keys()) + ['Hashes'])],
         rule_conditions=[
             category_to_conditions_mappings[rule_category]
             for rule_category in table_to_category_mappings[table_name]
