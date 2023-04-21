@@ -34,7 +34,7 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     token_separator: str = " "  # separator inserted between all boolean operators
     or_token: ClassVar[str] = "or"
     and_token: ClassVar[str] = "and"
-    not_token: ClassVar[str] = " !~ "
+    not_token: ClassVar[str] = "not"
     eq_token: ClassVar[str] = " =~ "  # Token inserted between field and value (without separator)
 
     # String output
@@ -184,6 +184,23 @@ class Microsoft365DefenderBackend(TextQueryBackend):
         if as_in_expr and wildcard_exprs:
             return as_in_expr + self.token_separator + op2 + self.token_separator + wildcard_exprs
         return as_in_expr + wildcard_exprs
+
+    def convert_condition_not(self, cond: ConditionNOT, state: ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of NOT conditions. Overridden to surround the group or expr of the 'not' negation with parens,
+        as expected by KQL.
+        """
+        arg = cond.args[0]
+        try:
+            if arg.__class__ in self.precedence:        # group if AND or OR condition is negated
+                return self.not_token + "(" + self.convert_condition_group(arg, state) + ")"
+            else:
+                expr = self.convert_condition(arg, state)
+                if isinstance(expr, DeferredQueryExpression):      # negate deferred expression and pass it to parent
+                    return expr.negate()
+                else:                                             # convert negated expression to string
+                    return self.not_token + "(" + expr + ")"
+        except TypeError:       # pragma: no cover
+            raise NotImplementedError("Operator 'not' not supported by the backend")
 
     def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
         """
