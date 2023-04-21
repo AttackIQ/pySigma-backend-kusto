@@ -137,3 +137,51 @@ def test_microsoft365defender_cidr_query(microsoft365defender_backend: Microsoft
                 condition: sel
         """)
     ) == ['DeviceNetworkEvents\n| where ipv4_is_in_range(LocalIP, "192.168.0.0/16")']
+
+
+def test_microsoft365defender_negation_basic(microsoft365defender_backend: Microsoft365DefenderBackend):
+    assert microsoft365defender_backend.convert(
+        SigmaCollection.from_yaml(r"""
+            title: Test
+            status: test
+            logsource:
+                product: windows
+                category: process_creation
+            detection:
+                selection:
+                    Image:
+                        - '*\process.exe'
+                    CommandLine:
+                        - 'this'
+                filter:
+                    CommandLine:
+                        - 'notthis'
+                condition: selection and not filter
+        """)
+    ) == ['DeviceProcessEvents\n| where FolderPath endswith "\\\\process.exe" and '
+          'ProcessCommandLine =~ "this" and '
+          'not(ProcessCommandLine =~ "notthis")']
+
+
+def test_microsoft365defender_negation_contains(microsoft365defender_backend: Microsoft365DefenderBackend):
+    assert microsoft365defender_backend.convert(
+        SigmaCollection.from_yaml(r"""
+            title: Test
+            status: test
+            logsource:
+                product: windows
+                category: process_creation
+            detection:
+                selection:
+                    Image:
+                        - '*\process.exe'
+                    CommandLine:
+                        - '*this*'
+                filter:
+                    CommandLine:
+                        - '*notthis*'
+                condition: selection and not filter
+        """)
+    ) == ['DeviceProcessEvents\n| where FolderPath endswith "\\\\process.exe" and '
+          'ProcessCommandLine contains "this" and '
+          'not(ProcessCommandLine contains "notthis")']
