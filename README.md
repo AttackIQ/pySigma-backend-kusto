@@ -28,14 +28,17 @@ This backend is currently maintained by:
 * [Stephen Lincoln](https://github.com/slincoln-aiq) via [AttackIQ](https://github.com/AttackIQ)
 
 ## Installation
+
 This pySigma backend can be installed from PyPI via pip, or by using pySigma's plugin functionality
 
 ### pip
+
 ```bash
 pip install pysigma-backend-microsoft365defender
 ```
 
 ### pySigma Plugins (requires pySigma >= 0.9.0)
+
 ```python
 from sigma.plugins import SigmaPluginDirectory  # Requires pySigma >= 0.9.0
 
@@ -141,15 +144,19 @@ the pipeline in the backend:
   be a slightly different set of values than what Sysmon specified, so this will change them to the correct value.
 
 
-* `InvalidFieldTransformation`: Same as `DetectionItemFailureTransformation` in native pySigma transformations.py, but it
-also includes the field name in the error message that caused the error.
+* `InvalidFieldTransformation`: Same as `DetectionItemFailureTransformation` in native pySigma transformations.py, but
+  it
+  also includes the field name in the error message that caused the error.
 
 ## Limitations and Constraints
 
 The pipeline/backend will only work for `product=windows` and the rule categories listed above (for now).
 
-Fields that are not specified in each field mappings dictionary in the `microsoft_365_defender_pipeline` will not throw
-an exception, but will also not be mapped to anything.
+Fields found in Sigma Rules that are not specified in each field mappings dictionaries in the `microsoft365defender` pipeline
+will cause an exception to be raised. The fields that are allowed are most Syslog fields, as well as any field
+that can be found in the Microsoft 365 Advanced Hunting
+Query [table schema](https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-schema-tables?view=o365-worldwide#learn-the-schema-tables)
+
 We are working on removing unsupported fields from queries and adding them as a comment in the query so the user will be
 aware of unsupported fields, but still be able to transform/convert rules without error.
 
