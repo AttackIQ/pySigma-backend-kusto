@@ -26,10 +26,10 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     requires_pipeline: bool = False  # m365 pipeline is automatically applied
 
     # Operator precedence
-    precedence: ClassVar[Tuple[ConditionItem, ConditionItem, ConditionItem]] = (ConditionNOT, ConditionOR, ConditionAND)
+    parenthesize = True
+    precedence: ClassVar[Tuple[ConditionItem, ConditionItem, ConditionItem]] = (ConditionNOT, ConditionAND, ConditionOR)
     group_expression: ClassVar[
         str] = "({expr})"  # Expression for precedence override grouping as format string with {expr} placeholder
-
     # Generated query tokens
     token_separator: str = " "  # separator inserted between all boolean operators
     or_token: ClassVar[str] = "or"
@@ -109,7 +109,7 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     field_in_list_expression: ClassVar[
         str] = "{field} {op} ({list})"  # Expression for field in list of values as format string with placeholders {field}, {op} and {list}
     or_in_operator: ClassVar[
-        str] = "has_any"  # Operator used to convert OR into in-expressions. Must be set if convert_or_as_in is set
+        str] = "in~"  # Operator used to convert OR into in-expressions. Must be set if convert_or_as_in is set
     and_in_operator: ClassVar[
         str] = "has_all"  # Operator used to convert AND into in-expressions. Must be set if convert_and_as_in is set
     list_separator: ClassVar[str] = ", "  # List element separator
@@ -191,15 +191,15 @@ class Microsoft365DefenderBackend(TextQueryBackend):
         """
         arg = cond.args[0]
         try:
-            if arg.__class__ in self.precedence:        # group if AND or OR condition is negated
+            if arg.__class__ in self.precedence:  # group if AND or OR condition is negated
                 return self.not_token + "(" + self.convert_condition_group(arg, state) + ")"
             else:
                 expr = self.convert_condition(arg, state)
-                if isinstance(expr, DeferredQueryExpression):      # negate deferred expression and pass it to parent
+                if isinstance(expr, DeferredQueryExpression):  # negate deferred expression and pass it to parent
                     return expr.negate()
-                else:                                             # convert negated expression to string
+                else:  # convert negated expression to string
                     return self.not_token + "(" + expr + ")"
-        except TypeError:       # pragma: no cover
+        except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
 
     def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
