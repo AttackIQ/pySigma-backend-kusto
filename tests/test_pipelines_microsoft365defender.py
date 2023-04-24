@@ -33,9 +33,9 @@ def test_microsoft_365_defender_username_transformation():
             """)
     ) == ['DeviceProcessEvents\n| '
           'where (ProcessCommandLine =~ "command1" and AccountName =~ "username1") or '
-          '(ProcessCommandLine =~ "command2" and AccountName =~ "username2" and AccountDomain =~ "domain2") or '
-          '(ProcessCommandLine =~ "command3" and InitiatingProcessAccountName =~ "username3" or '
-          '(InitiatingProcessAccountName =~ "username4" and InitiatingProcessAccountDomain =~ "domain4")) or '
+          '(ProcessCommandLine =~ "command2" and (AccountName =~ "username2" and AccountDomain =~ "domain2")) or '
+          '(ProcessCommandLine =~ "command3" and (InitiatingProcessAccountName =~ "username3" or '
+          '(InitiatingProcessAccountName =~ "username4" and InitiatingProcessAccountDomain =~ "domain4"))) or '
           'AccountName =~ "username5"']
 
 
@@ -63,10 +63,10 @@ def test_microsoft_365_defender_hashes_values_transformation():
                     condition: any of sel*
             """)
     ) == ['DeviceProcessEvents\n'
-          '| where MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" or SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" '
-          'or SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf" or '
-          'MD5 =~ "0b49939d6415354c950b142a0b1e696a" or SHA1 =~ "4b2b79b6f371ca18f1216461cffeaddf6848a50e" or '
-          'SHA256 =~ "8f16f88cfa1cf0d17c75403aa9614d806ebc00419763e0ecac3860decbcd9988"']
+          '| where (MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" or SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" '
+          'or SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf") or '
+          '(MD5 =~ "0b49939d6415354c950b142a0b1e696a" or SHA1 =~ "4b2b79b6f371ca18f1216461cffeaddf6848a50e" or '
+          'SHA256 =~ "8f16f88cfa1cf0d17c75403aa9614d806ebc00419763e0ecac3860decbcd9988")']
 
 
 def test_microsoft_365_defender_process_creation_simple():
@@ -495,9 +495,9 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
     ) == [
                'DeviceRegistryEvents\n| '
                'where ActionType =~ "RegistryKeyCreated" or '
-               'ActionType has_any ("RegistryKeyDeleted", "RegistryValueDeleted") or '
+               '(ActionType in~ ("RegistryKeyDeleted", "RegistryValueDeleted")) or '
                'ActionType =~ "RegistryValueSet" or '
-               'ActionType has_any ("RegistryValueSet", "RegistryKeyCreated")']
+               '(ActionType in~ ("RegistryValueSet", "RegistryKeyCreated"))']
 
     def test_microsoft_365_defender_pipeline_generic_field():
         """Tests"""

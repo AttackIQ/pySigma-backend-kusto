@@ -61,8 +61,8 @@ def test_microsoft365defender_and_or_expression(microsoft365defender_backend: Mi
                         - valueB2
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine has_any ("valueA1", "valueA2") and '
-          'ProcessId has_any ("valueB1", "valueB2")']
+    ) == ['DeviceProcessEvents\n| where (ProcessCommandLine in~ ("valueA1", "valueA2")) and '
+          '(ProcessId in~ ("valueB1", "valueB2"))']
 
 
 def test_microsoft365defender_or_and_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
@@ -102,7 +102,7 @@ def test_microsoft365defender_in_expression(microsoft365defender_backend: Micros
                         - valueC*
                 condition: sel
         """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine has_any ("valueA", "valueB") or '
+    ) == ['DeviceProcessEvents\n| where ProcessCommandLine in~ ("valueA", "valueB") or '
           'ProcessCommandLine startswith "valueC"']
 
 
@@ -158,9 +158,9 @@ def test_microsoft365defender_negation_basic(microsoft365defender_backend: Micro
                         - 'notthis'
                 condition: selection and not filter
         """)
-    ) == ['DeviceProcessEvents\n| where FolderPath endswith "\\\\process.exe" and '
-          'ProcessCommandLine =~ "this" and '
-          'not(ProcessCommandLine =~ "notthis")']
+    ) == ['DeviceProcessEvents\n| where (FolderPath endswith "\\\\process.exe" and '
+          'ProcessCommandLine =~ "this") and '
+          '(not(ProcessCommandLine =~ "notthis"))']
 
 
 def test_microsoft365defender_negation_contains(microsoft365defender_backend: Microsoft365DefenderBackend):
@@ -182,6 +182,29 @@ def test_microsoft365defender_negation_contains(microsoft365defender_backend: Mi
                         - '*notthis*'
                 condition: selection and not filter
         """)
-    ) == ['DeviceProcessEvents\n| where FolderPath endswith "\\\\process.exe" and '
-          'ProcessCommandLine contains "this" and '
-          'not(ProcessCommandLine contains "notthis")']
+    ) == ['DeviceProcessEvents\n| where (FolderPath endswith "\\\\process.exe" and '
+          'ProcessCommandLine contains "this") and '
+          '(not(ProcessCommandLine contains "notthis"))']
+
+
+def test_microsoft365defender_grouping(microsoft365defender_backend: Microsoft365DefenderBackend):
+    assert microsoft365defender_backend.convert(
+        SigmaCollection.from_yaml(r"""
+            title: Net connection logic test
+            status: test
+            logsource:
+                category: network_connection
+                product: windows
+            detection:
+                selection:
+                    Image:
+                        - '*\powershell.exe'
+                        - '*\pwsh.exe'
+                    DestinationHostname: 
+                        - '*pastebin.com*'
+                        - '*anothersite.com*'
+                condition: selection
+    """)
+    ) == ['DeviceNetworkEvents\n| where (InitiatingProcessFolderPath endswith "\\\\powershell.exe" or '
+          'InitiatingProcessFolderPath endswith "\\\\pwsh.exe") and (RemoteUrl contains '
+          '"pastebin.com" or RemoteUrl contains "anothersite.com")']
