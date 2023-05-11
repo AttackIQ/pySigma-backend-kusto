@@ -8,14 +8,12 @@ from sigma.types import SigmaCompareExpression, SigmaString
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 import sigma
 import re
-from typing import ClassVar, Dict, Tuple, Pattern, Any, Union
+from typing import ClassVar, Dict, Tuple, Pattern, Any, Union, Optional
 
 
 class Microsoft365DefenderBackend(TextQueryBackend):
-    """Microsoft 365 Defender KQL Backend"""
-
-    # Automatically apply pipeline
-    backend_processing_pipeline: ClassVar[ProcessingPipeline] = microsoft_365_defender_pipeline()
+    """Microsoft 365 Defender KQL Backend. Automatically applied the microsoft_365_defender_pipeline from
+    sigma.pipelines.microsoft365defender."""
 
     # The backend generates grouping if required
     name: ClassVar[str] = "Microsoft 365 Defender backend"
@@ -127,15 +125,25 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     deferred_separator: ClassVar[str] = "\n| "  # String used to join multiple deferred query parts
     deferred_only_query: ClassVar[str] = "*"  # String used as query if final query only contains deferred expression
 
-    # TODO: implement custom methods for query elements not covered by the default backend base.
-    # Documentation: https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html
-
     # We use =~ for eq_token so everything is case insensitive. But this cannot be used with ints/numbers in queries
     # So we can define a new token to use for SigmaNumeric types and override convert_condition_field_eq_val_num
     # to use it
     num_eq_token: ClassVar[str] = " == "
 
     # Override methods
+    # __init__() to deal with microsoft_365_defender_pipeline params, since it's automatically applied we need to pass
+    # params to __init__()
+    def __init__(self, processing_pipeline: Optional[ProcessingPipeline] = None,
+                 collect_errors: bool = False,
+                 transform_parent_image: bool = True,
+                 **kwargs):
+        super().__init__(processing_pipeline, collect_errors, **kwargs)
+        if self.processing_pipeline:
+            self.processing_pipeline = microsoft_365_defender_pipeline(transform_parent_image) + \
+                                       self.processing_pipeline
+        else:
+            self.processing_pipeline = microsoft_365_defender_pipeline(transform_parent_image)
+
     #  For numeric values, need == instead of =~
     def convert_condition_field_eq_val_num(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
             Union[str, DeferredQueryExpression]:
