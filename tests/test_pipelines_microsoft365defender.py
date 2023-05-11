@@ -499,9 +499,53 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
                'ActionType =~ "RegistryValueSet" or '
                '(ActionType in~ ("RegistryValueSet", "RegistryKeyCreated"))']
 
-    def test_microsoft_365_defender_pipeline_generic_field():
-        """Tests"""
-        assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+
+def test_microsoft_365_defender_pipeline_generic_field():
+    """Tests"""
+    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: file_event
+                    product: windows
+                detection:
+                    sel1:
+                        CommandLine: whoami
+                        ProcessId: 1  
+                    condition: any of sel*
+            """)
+    ) == [
+               'DeviceFileEvents\n| '
+               'where InitiatingProcessCommandLine =~ "whoami" and InitiatingProcessId == 1']
+
+
+def test_microsoft_365_defender_pipeline_parent_image():
+    """Tests ParentImage for non-process-creation rules"""
+    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: file_event
+                    product: windows
+                detection:
+                    sel1:
+                        Image: C:\\Windows\\System32\\whoami.exe
+                        ParentImage: C:\\Windows\\System32\\cmd.exe  
+                    condition: any of sel*
+            """)
+    ) == [
+               'DeviceFileEvents\n| '
+               'where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\whoami.exe" and '
+               'InitiatingProcessParentFileName =~ "cmd.exe"']
+
+
+def test_microsoft_365_defender_pipeline_parent_image_false():
+    """Tests passing transfer_parent_image=False to the pipeline"""
+    with pytest.raises(SigmaTransformationError,
+                       match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
+        Microsoft365DefenderBackend(transform_parent_image=False).convert(
             SigmaCollection.from_yaml("""
                     title: Test
                     status: test
@@ -510,13 +554,11 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
                         product: windows
                     detection:
                         sel1:
-                            CommandLine: whoami
-                            ProcessId: 1  
+                            Image: C:\\Windows\\System32\\whoami.exe
+                            ParentImage: C:\\Windows\\System32\\cmd.exe  
                         condition: any of sel*
                 """)
-        ) == [
-                   'DeviceFileEvents\n| '
-                   'where InitiatingProcessCommandLine =~ "whoami" and InitiatingProcessId == 1']
+        )
 
 
 def test_microsoft_365_defender_pipeline_unsupported_rule_type():
