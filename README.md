@@ -63,7 +63,7 @@ sigma convert -t microsoft365defender -f default -s ~/sigma/rules
 ### pySigma
 
 Use the backend and pipeline in a standalone Python script. Note, the backend automatically applies the pipeline, but
-you can manually add it if you would like:
+you can manually add it if you would like.
 
 ```python
 from sigma.rule import SigmaRule
@@ -103,6 +103,73 @@ DeviceProcessEvents
 | where ProcessCommandLine contains "mimikatz.exe"
 ````
 
+#### Pipeline & Backend Args (New in 0.2.0)
+
+`transform_parent_image`: If `True`, the ParentImage field will be mapped to InitiatingProcessParentFileName, and
+the parent process name in the ParentImage will be extracted and used. If False, using ParentImage in a rule with a
+category other than process_creation will raise `InvalidFieldTransformation` exception. This is because the Microsoft
+365 Defender table schema does not contain a InitiatingProcessParentFolderPath field like it does for
+InitiatingProcessFolderPath. This applies to all rule categories *except* process_creation, as the ParentImage field is
+mapped to InitiatingProcessFolderPath and Image field is mapped to FolderPath in the Microsoft schema table for this
+event category. Defaults to `True`. Example:
+
+```python
+from sigma.rule import SigmaRule
+from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
+from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
+from copy import deepcopy
+
+# Define an example rule as a YAML str
+sigma_rule_orig = SigmaRule.from_yaml("""
+  title: Mimikatz CommandLine
+  status: test
+  logsource:
+      category: file_event
+      product: windows
+  detection:
+      sel:
+          ParentImage: C:\\Windows\\System32\\whoami.exe
+      condition: sel
+""")
+sigma_rule = deepcopy(sigma_rule_orig)
+# Specify `transform_parent_image` in backend directly, default is True so nothing is needed
+m365def_backend = Microsoft365DefenderBackend()
+print("With transform_parent_image=True")
+print("Output:\n")
+print(m365def_backend.convert_rule(sigma_rule)[0], end="\n-----\n")
+
+sigma_rule = deepcopy(sigma_rule_orig)
+# Now try it with transform_parent_image=False
+m365def_backend = Microsoft365DefenderBackend(transform_parent_image=False)
+print("With transform_parent_image=False")
+print("Output:\n")
+try:
+    print(m365def_backend.convert_rule(sigma_rule)[0])
+except Exception as exc:
+    print(exc)
+
+# Can also be used via the pipeline
+pipeline = microsoft_365_defender_pipeline(transform_parent_image=True)
+
+```
+
+Output:
+
+```
+With transform_parent_image=True
+Output:
+
+DeviceFileEvents
+| where InitiatingProcessParentFileName =~ "whoami.exe"
+-----
+With transform_parent_image=False
+Output:
+
+Invalid SigmaDetectionItem field name encountered: ParentImage. Please use valid fields for the DeviceFileEvents table, or the following fields that have keymappings in this pipeline:
+CommandLine, Company, Description, EventType, Hashes, Image, OriginalFileName, ParentCommandLine, ParentProcessId, ProcessId, Product, SourceImage, TargetFilename, User, md5, sha1, sha256
+
+```
+
 ## Rule Support
 
 The following `category` types are currently supported for only `product=windows`:
@@ -118,6 +185,14 @@ The following `category` types are currently supported for only `product=windows
 Along with field mappings and error handling, the `microsoft_365_defender_pipeline` contains the following
 custom `ProcessingPipeline` classes to help ensure correct fields and values and are automatically applied as part of
 the pipeline in the backend:
+
+* `ParentImageValueTransformation`: (New in v0.2.0) Custom ValueTransformation extract the parent process name from the
+  Sysmon ParentImage field. Unfortunately, none of the table schemas have InitiatingProcessParentFolderPath like they do
+  InitiatingProcessFolderPath. Due to this, we cannot directly map the Sysmon `ParentImage` field to a table field.
+  However, InitiatingProcessParentFileName is an available field in nearly all tables, so we will extract the
+  process name and use that instead.
+
+  Use this transformation BEFORE mapping ParentImage to InitiatingProcessFileName
 
 * `SplitDomainUserTransformation`: Custom DetectionItemTransformation transformation to split a User field into separate
   domain and user fields,
@@ -152,7 +227,8 @@ the pipeline in the backend:
 
 The pipeline/backend will only work for `product=windows` and the rule categories listed above (for now).
 
-Fields found in Sigma Rules that are not specified in each field mappings dictionaries in the `microsoft365defender` pipeline
+Fields found in Sigma Rules that are not specified in each field mappings dictionaries in the `microsoft365defender`
+pipeline
 will cause an exception to be raised. The fields that are allowed are most Syslog fields, as well as any field
 that can be found in the Microsoft 365 Advanced Hunting
 Query [table schema](https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-schema-tables?view=o365-worldwide#learn-the-schema-tables)
