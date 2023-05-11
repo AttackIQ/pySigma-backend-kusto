@@ -1,23 +1,23 @@
-from dataclasses import dataclass
 from typing import Union, Optional, Iterable
+from collections import defaultdict
 
 from sigma.exceptions import SigmaTransformationError
-from sigma.pipelines.common import logsource_windows_process_creation, \
-    logsource_windows_image_load, logsource_windows_file_event, logsource_windows_file_delete, \
-    logsource_windows_file_change, logsource_windows_file_access, logsource_windows_file_rename, \
-    logsource_windows_registry_set, logsource_windows_registry_add, logsource_windows_registry_delete, \
-    logsource_windows_registry_event, logsource_windows_network_connection
-from sigma.processing.transformations import FieldMappingTransformation, \
-    RuleFailureTransformation, ReplaceStringTransformation, SetStateTransformation, DetectionItemTransformation, \
-    ValueTransformation, DetectionItemFailureTransformation
-from sigma.processing.conditions import IncludeFieldCondition, \
-    RuleProcessingItemAppliedCondition, ExcludeFieldCondition, DetectionItemProcessingItemAppliedCondition, \
-    FieldNameProcessingItemAppliedCondition, LogsourceCondition
+from sigma.pipelines.common import (logsource_windows_process_creation, logsource_windows_image_load,
+                                    logsource_windows_file_event, logsource_windows_file_delete,
+                                    logsource_windows_file_change, logsource_windows_file_access,
+                                    logsource_windows_file_rename, logsource_windows_registry_set,
+                                    logsource_windows_registry_add, logsource_windows_registry_delete,
+                                    logsource_windows_registry_event, logsource_windows_network_connection)
+from sigma.processing.transformations import (FieldMappingTransformation, RuleFailureTransformation,
+                                              ReplaceStringTransformation, SetStateTransformation,
+                                              DetectionItemTransformation, ValueTransformation,
+                                              DetectionItemFailureTransformation)
+from sigma.processing.conditions import (IncludeFieldCondition, ExcludeFieldCondition,
+                                         DetectionItemProcessingItemAppliedCondition, LogsourceCondition)
 from sigma.conditions import ConditionOR
 from sigma.types import SigmaString, SigmaType
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
-from sigma.rule import SigmaDetectionItem, SigmaDetection, SigmaRule
-from collections import defaultdict
+from sigma.rule import SigmaDetectionItem, SigmaDetection
 
 
 # CUSTOM TRANSFORMATIONS
@@ -122,7 +122,7 @@ class RegistryActionTypeValueTransformation(ValueTransformation):
         return SigmaString(mapped_vals)
 
 
-# Extract parent process name from ParentImage BEFORE applying ParentImage field mapping
+# Extract parent process name from ParentImage after applying ParentImage field mapping
 class ParentImageValueTransformation(ValueTransformation):
     """Custom ValueTransformation transformation.  Unfortunately, none of the table schemas have
     InitiatingProcessParentFolderPath like they do InitiatingProcessFolderPath. Due to this, we cannot directly map the
@@ -133,7 +133,7 @@ class ParentImageValueTransformation(ValueTransformation):
     """
 
     def apply_value(self, field: str, val: SigmaType) -> Optional[Union[SigmaType, Iterable[SigmaType]]]:
-        parent_process_name = val.to_plain().split("\\")[-1]
+        parent_process_name = str(val.to_plain().split("\\")[-1].split("/")[-1])
         return SigmaString(parent_process_name)
 
 
@@ -479,15 +479,17 @@ replacement_proc_items = [
 
 # ParentImage -> InitiatingProcessParentFileName
 parent_image_proc_items = [
-    # First, do the value transformation on the ParentImage field
+    # First apply fieldmapping from ParentImage to InitiatingProcessParentFileName for non process-creation rules
     ProcessingItem(
         identifier="microsoft_365_defender_parent_image_fieldmapping",
         transformation=FieldMappingTransformation(parent_image_field_mapping),
         rule_conditions=[
+            # Exclude process_creation events, there's direct field mapping in this schema table
             LogsourceCondition(category='process_creation')
         ],
         rule_condition_negation=True
     ),
+    # Second, extract the parent process name from the full path
     ProcessingItem(
         identifier="microsoft_365_defender_parent_image_name_value",
         transformation=ParentImageValueTransformation(),
@@ -495,8 +497,9 @@ parent_image_proc_items = [
             IncludeFieldCondition(["InitiatingProcessParentFileName"]),
         ],
         rule_conditions=[
-                    LogsourceCondition(category='process_creation')
-                ],
+            # Exclude process_creation events, there's direct field mapping in this schema table
+            LogsourceCondition(category='process_creation')
+        ],
         rule_condition_negation=True
     )
 
