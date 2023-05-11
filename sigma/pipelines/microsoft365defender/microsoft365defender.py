@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Union, Optional, Iterable
 
 from sigma.exceptions import SigmaTransformationError
@@ -10,11 +11,12 @@ from sigma.processing.transformations import FieldMappingTransformation, \
     RuleFailureTransformation, ReplaceStringTransformation, SetStateTransformation, DetectionItemTransformation, \
     ValueTransformation, DetectionItemFailureTransformation
 from sigma.processing.conditions import IncludeFieldCondition, \
-    RuleProcessingItemAppliedCondition, ExcludeFieldCondition, DetectionItemProcessingItemAppliedCondition
+    RuleProcessingItemAppliedCondition, ExcludeFieldCondition, DetectionItemProcessingItemAppliedCondition, \
+    FieldNameProcessingItemAppliedCondition, LogsourceCondition
 from sigma.conditions import ConditionOR
 from sigma.types import SigmaString, SigmaType
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
-from sigma.rule import SigmaDetectionItem, SigmaDetection
+from sigma.rule import SigmaDetectionItem, SigmaDetection, SigmaRule
 from collections import defaultdict
 
 
@@ -118,6 +120,21 @@ class RegistryActionTypeValueTransformation(ValueTransformation):
         if isinstance(mapped_vals, list):
             return [SigmaString(v) for v in mapped_vals]
         return SigmaString(mapped_vals)
+
+
+# Extract parent process name from ParentImage BEFORE applying ParentImage field mapping
+class ParentImageValueTransformation(ValueTransformation):
+    """Custom ValueTransformation transformation.  Unfortunately, none of the table schemas have
+    InitiatingProcessParentFolderPath like they do InitiatingProcessFolderPath. Due to this, we cannot directly map the
+    Sysmon `ParentImage` field to a table field. However, InitiatingProcessParentFileName is an available field in
+    nearly all tables, so we will extract the process name and use that instead.
+
+    Use this transformation BEFORE mapping ParentImage to InitiatingProcessFileName
+    """
+
+    def apply_value(self, field: str, val: SigmaType) -> Optional[Union[SigmaType, Iterable[SigmaType]]]:
+        parent_process_name = val.to_plain().split("\\")[-1]
+        return SigmaString(parent_process_name)
 
 
 class InvalidFieldTransformation(DetectionItemFailureTransformation):
@@ -335,6 +352,9 @@ valid_fields_per_table = {
                             'InitiatingProcessAccountObjectId', 'InitiatingProcessIntegrityLevel',
                             'InitiatingProcessTokenElevation', 'ReportId', 'AppGuardContainerId', 'AdditionalFields']}
 
+# Mapping from ParentImage to InitiatingProcessParentFileName. Must be used alongside of ParentImageValueTransformation
+parent_image_field_mapping = {'ParentImage': 'InitiatingProcessParentFileName'}
+
 # OTHER MAPPINGS
 ## useful for creating ProcessingItems() with list comprehension
 
@@ -407,6 +427,7 @@ generic_field_mappings_proc_item = [ProcessingItem(
     detection_item_condition_negation=True,
 )
 ]
+
 ## Field Value Replacements ProcessingItems
 replacement_proc_items = [
     # Sysmon uses abbreviations in RegistryKey values, replace with full key names as the DeviceRegistryEvents schema
@@ -456,6 +477,31 @@ replacement_proc_items = [
     ),
 ]
 
+# ParentImage -> InitiatingProcessParentFileName
+parent_image_proc_items = [
+    # First, do the value transformation on the ParentImage field
+    ProcessingItem(
+        identifier="microsoft_365_defender_parent_image_fieldmapping",
+        transformation=FieldMappingTransformation(parent_image_field_mapping),
+        rule_conditions=[
+            LogsourceCondition(category='process_creation')
+        ],
+        rule_condition_negation=True
+    ),
+    ProcessingItem(
+        identifier="microsoft_365_defender_parent_image_name_value",
+        transformation=ParentImageValueTransformation(),
+        field_name_conditions=[
+            IncludeFieldCondition(["InitiatingProcessParentFileName"]),
+        ],
+        rule_conditions=[
+                    LogsourceCondition(category='process_creation')
+                ],
+        rule_condition_negation=True
+    )
+
+]
+
 ## Exceptions/Errors ProcessingItems
 rule_error_proc_items = [
     # Category Not Supported
@@ -491,21 +537,36 @@ field_error_proc_items = [
 ]
 
 
-def microsoft_365_defender_pipeline() -> ProcessingPipeline:
+def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = True) -> ProcessingPipeline:
     """Pipeline for transformations for SigmaRules to use in the Microsoft 365 Defender Backend
     Field mappings based on documentation found here:
     https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-query-language?view=o365-worldwide
+
+    :param transform_parent_image: If True, the ParentImage field will be mapped to InitiatingProcessParentFileName, and
+    the parent process name in the ParentImage will be extracted and used. This is because the Microsoft 365 Defender
+    table schema does not contain a InitiatingProcessParentFolderPath field like it does for InitiatingProcessFolderPath.
+    i.e. ParentImage: C:\\Windows\\System32\\whoami.exe -> InitiatingProcessParentFileName: whoami.exe.
+    Defaults to True
+    :type transform_parent_image: Optional[bool]
+
     :return: ProcessingPipeline for Microsoft 365 Defender Backend
     :rtype: ProcessingPipeline
     """
+
+    pipeline_items = [
+        *query_table_proc_items,
+        *fieldmappings_proc_items,
+        *generic_field_mappings_proc_item,
+        *replacement_proc_items,
+        *rule_error_proc_items,
+        *field_error_proc_items,
+    ]
+
+    if transform_parent_image:
+        pipeline_items[4:4] = parent_image_proc_items
+
     return ProcessingPipeline(
         name="Generic Log Sources to Windows 365 Defender Transformation",
         priority=10,
-        items=[*query_table_proc_items,
-               *fieldmappings_proc_items,
-               *generic_field_mappings_proc_item,
-               *replacement_proc_items,
-               *rule_error_proc_items,
-               *field_error_proc_items,
-               ]
+        items=pipeline_items,
     )
