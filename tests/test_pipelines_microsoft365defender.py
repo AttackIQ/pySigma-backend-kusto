@@ -1,5 +1,6 @@
 import pytest
 from sigma.exceptions import SigmaTransformationError
+from sigma.pipelines.microsoft365defender.microsoft365defender import InvalidHashAlgorithmError
 
 from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
 from sigma.collection import SigmaCollection
@@ -500,6 +501,27 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
                '(ActionType in~ ("RegistryValueSet", "RegistryKeyCreated"))']
 
 
+def test_microsoft_365_defender_pipeline_valid_hash_in_list():
+    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+            SigmaCollection.from_yaml("""
+                title: test
+                status: test
+                logsource:
+                    category: process_creation
+                    product: windows
+                detection:
+                    sel:
+                        Hashes: 
+                            - MD5=6444f8a34e99b8f7d9647de66aabe516
+                            - IMPHASH=dfd6aa3f7b2b1035b76b718f1ddc689f
+                            - IMPHASH=1a6cca4d5460b1710a12dea39e4a592c
+                    condition: sel
+            """)
+        ) == [ 'DeviceProcessEvents\n| ' 
+               'where MD5 =~ "6444f8a34e99b8f7d9647de66aabe516"']
+
+
+
 def test_microsoft_365_defender_pipeline_generic_field():
     """Tests"""
     assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
@@ -672,3 +694,23 @@ def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
                     condition: sel
             """)
         )
+
+def test_microsoft_365_defender_pipeline_no_valid_hashes():
+    with pytest.raises(InvalidHashAlgorithmError):
+        Microsoft365DefenderBackend().convert(
+            SigmaCollection.from_yaml("""
+                title: test
+                status: test
+                logsource:
+                    category: network_connection
+                    product: windows
+                detection:
+                    sel:
+                        Hashes: 
+                            - IMPHASH=6444f8a34e99b8f7d9647de66aabe516
+                            - IMPHASH=dfd6aa3f7b2b1035b76b718f1ddc689f
+                            - IMPHASH=1a6cca4d5460b1710a12dea39e4a592c
+                    condition: sel
+            """)
+        )
+

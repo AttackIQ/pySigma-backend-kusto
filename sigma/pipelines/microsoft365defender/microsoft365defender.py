@@ -77,25 +77,38 @@ class HashesValuesTransformation(DetectionItemTransformation):
     def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
         Union[SigmaDetection, SigmaDetectionItem]]:
         to_return = []
+        no_valid_hash_algo = True
         algo_dict = defaultdict(list)  # map to keep track of algos and lists of values
         if not isinstance(detection_item.value, list):
             detection_item.value = [detection_item.value]
         for d in detection_item.value:
-            hash_value = d.to_plain().split("|")
+            hash_value = d.to_plain().split("|")  # sometimes if ALGO|VALUE
+            if len(hash_value) == 1:  # and sometimes its ALGO=VALUE
+                hash_value = hash_value[0].split("=")
             if len(hash_value) == 2:
-                hash_algo = hash_value[0].upper() if hash_value[0].upper() in ['MD5', 'SHA1', 'SHA256'] else ""
+                hash_algo = hash_value[0].lstrip("*").upper() if hash_value[0].lstrip("*").upper() in ['MD5', 'SHA1', 'SHA256'] else ""
+                if hash_algo:
+                    no_valid_hash_algo = False
                 hash_value = hash_value[1]
             else:
                 hash_value = hash_value[0]
                 if len(hash_value) == 32:  # MD5
                     hash_algo = 'MD5'
+                    no_valid_hash_algo = False
                 elif len(hash_value) == 40:  # SHA1
                     hash_algo = 'SHA1'
+                    no_valid_hash_algo = False
                 elif len(hash_value) == 64:  # SHA256
                     hash_algo = "SHA256"
+                    no_valid_hash_algo = False
                 else:  # Invalid algo, no fieldname for keyword search
                     hash_algo = ''
             algo_dict[hash_algo].append(hash_value)
+        if no_valid_hash_algo:
+            raise InvalidHashAlgorithmError(
+                "No valid hash algo found in Hashes field.  Advanced Hunting Queries do not support the "
+                "IMPHASH field. Ensure the detection item has at least one MD5, SHA1, or SHA265 hash field/value"
+            )
         for k, v in algo_dict.items():
             if k:  # Filter out invalid hash algo types
                 to_return.append(SigmaDetectionItem(field=k if k != 'keyword' else None,
@@ -147,6 +160,11 @@ class InvalidFieldTransformation(DetectionItemFailureTransformation):
         field_name = detection_item.field
         self.message = f"Invalid SigmaDetectionItem field name encountered: {field_name}. " + self.message
         raise SigmaTransformationError(self.message)
+
+
+class InvalidHashAlgorithmError(Exception):
+    pass
+
 
 
 # FIELD MAPPINGS
