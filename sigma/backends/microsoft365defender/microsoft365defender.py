@@ -221,3 +221,10 @@ class Microsoft365DefenderBackend(TextQueryBackend):
         query_table = query_table + "\n| where " if query_table else "search "
 
         return query_table + query
+
+    def convert_value_str(self, s: SigmaString, state: ConversionState) -> str:
+        """Convert a SigmaString into a plain string which can be used in query."""
+        converted = super().convert_value_str(s, state)
+        # If we have a wildcard in a string, we need to un-escape it
+        # See issue #13
+        return re.sub(r"\\\*", r"*", converted)
