@@ -210,6 +210,41 @@ def test_microsoft365defender_grouping(microsoft365defender_backend: Microsoft36
           '"pastebin.com" or RemoteUrl contains "anothersite.com")']
 
 
+def test_microsoft365defender_escape_cmdline_slash(microsoft365defender_backend: Microsoft365DefenderBackend):
+    assert microsoft365defender_backend.convert(
+        SigmaCollection.from_yaml(r"""
+            title: Delete All Scheduled Tasks
+            id: 220457c1-1c9f-4c2e-afe6-9598926222c1
+            status: test
+            description: Detects the usage of schtasks with the delete flag and the asterisk symbol to delete all tasks from the schedule of the local computer, including tasks scheduled by other users.
+            references:
+                - https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-delete
+            author: Nasreddine Bencherchali (Nextron Systems)
+            date: 2022/09/09
+            tags:
+                - attack.impact
+                - attack.t1489
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                selection:
+                    Image|endswith: '\schtasks.exe'
+                    CommandLine|contains|all:
+                        - ' /delete '
+                        - '/tn \*'
+                        - ' /f'
+                condition: selection
+            falsepositives:
+                - Unlikely
+            level: high
+        """)
+    ) == ['DeviceProcessEvents\n| where FolderPath endswith "\\\\schtasks.exe" and '
+          '(ProcessCommandLine contains " /delete " and '
+          'ProcessCommandLine contains "/tn *" and '
+          'ProcessCommandLine contains " /f")']
+
+
 def test_microsoft365defender_cmdline_filters(microsoft365defender_backend: Microsoft365DefenderBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml(
