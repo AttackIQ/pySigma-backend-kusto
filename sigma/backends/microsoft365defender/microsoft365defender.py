@@ -1,15 +1,15 @@
+import re
+from typing import ClassVar, Dict, Tuple, Pattern, Any, Union, Optional
+
+from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, ConditionFieldEqualsValueExpression
+from sigma.conversion.base import TextQueryBackend
+from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
 from sigma.processing.pipeline import ProcessingPipeline
 from sigma.rule import SigmaRule
-from sigma.conversion.base import TextQueryBackend
-from sigma.conversion.deferred import DeferredQueryExpression
-from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, ConditionFieldEqualsValueExpression
-from sigma.types import SigmaCompareExpression, SigmaString, SigmaRegularExpression, SigmaRegularExpressionFlag, \
-    SpecialChars
+from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
+
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
-import sigma
-import re
-from typing import ClassVar, Dict, Tuple, Pattern, Any, Union, Optional
 
 
 class Microsoft365DefenderBackend(TextQueryBackend):
@@ -76,12 +76,6 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     re_escape_char: ClassVar[str] = "\\"  # Character used for escaping in regular expressions
     re_escape: ClassVar[Tuple[str]] = ()  # List of strings that are escaped
     re_escape_escape_char: bool = True  # If True, the escape character is also escaped
-    re_flag_prefix: bool = True  # If True, the flags are prepended as (?x) group at the beginning of the regular expression, e.g. (?i). If this is not supported by the target, it should be set to False.
-    # Mapping from SigmaRegularExpressionFlag values to static string templates that are used in
-    # flag_x placeholders in re_expression template.
-    # By default, i, m and s are defined. If a flag is not supported by the target query language,
-    # remove it from re_flags or don't define it to ensure proper error handling in case of appearance.
-    re_flags: Dict[SigmaRegularExpressionFlag, str] = SigmaRegularExpression.sigma_to_re_flag
 
     # cidr expressions
     cidr_wildcard: ClassVar[str] = "*"  # Character used as single wildcard
