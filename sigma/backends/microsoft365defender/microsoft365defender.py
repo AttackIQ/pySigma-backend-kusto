@@ -1,14 +1,15 @@
+import re
+from typing import ClassVar, Dict, Tuple, Pattern, Any, Union, Optional
+
+from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, ConditionFieldEqualsValueExpression
+from sigma.conversion.base import TextQueryBackend
+from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
 from sigma.processing.pipeline import ProcessingPipeline
 from sigma.rule import SigmaRule
-from sigma.conversion.base import TextQueryBackend
-from sigma.conversion.deferred import DeferredQueryExpression
-from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, ConditionFieldEqualsValueExpression
-from sigma.types import SigmaCompareExpression, SigmaString
+from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
+
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
-import sigma
-import re
-from typing import ClassVar, Dict, Tuple, Pattern, Any, Union, Optional
 
 
 class Microsoft365DefenderBackend(TextQueryBackend):
@@ -67,8 +68,7 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     startswith_expression: ClassVar[str] = "{field} startswith {value}"
     endswith_expression: ClassVar[str] = "{field} endswith {value}"
     contains_expression: ClassVar[str] = "{field} contains {value}"
-    wildcard_match_expression: ClassVar[
-        str] = "match"  # Special expression if wildcards can't be matched with the eq_token operator
+    wildcard_match_expression: ClassVar[str] = None  # Special expression if wildcards can't be matched with the eq_token operator
 
     # Regular expressions
     re_expression: ClassVar[
@@ -186,7 +186,17 @@ class Microsoft365DefenderBackend(TextQueryBackend):
         if list_wildcards:
             for arg in list_wildcards:
                 new_cond = ConditionFieldEqualsValueExpression(field=field, value=arg)
-                expr = self.convert_condition_field_eq_val_str(new_cond, state)
+                if arg[1:-1].contains_special():  # Wildcard in string, not at start or end.
+                    # We need to get rid of all wildcards, and create a 'and contains' for each element in the list
+                    expr = f'{self.token_separator}{self.and_token}{self.token_separator}'.join(
+                        [self.contains_expression.format(
+                            field=field,
+                            value=self.convert_value_str(
+                                SigmaString(x), state)) for x in arg.s if not isinstance(x, SpecialChars)
+                        ]
+                    )
+                else:
+                    expr = self.convert_condition_field_eq_val_str(new_cond, state)
                 wildcard_exprs_list.append(expr)
         wildcard_exprs = f'{self.token_separator}{op2}{self.token_separator}'.join(wildcard_exprs_list)
         if as_in_expr and wildcard_exprs:
