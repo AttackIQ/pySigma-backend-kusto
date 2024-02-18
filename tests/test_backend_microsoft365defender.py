@@ -287,9 +287,9 @@ def test_microsoft365defender_cmdline_filters(microsoft365defender_backend: Micr
     ) == ['DeviceProcessEvents\n| where ((FolderPath endswith "\\\\netsh.exe" or '
           'ProcessVersionInfoOriginalFileName =~ "netsh.exe") and '
           '(ProcessCommandLine contains " firewall " and ProcessCommandLine contains " add ")) and '
-          '(not((ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in action=allow '
+          '(not(((ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in action=allow '
           '\\"program=" and ProcessCommandLine contains ":\\\\Program Files (x86)\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
-          'enable=yes profile=Any" or ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in '
+          'enable=yes profile=Any") or (ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in '
           'action=allow \\"program=" and ProcessCommandLine contains ":\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
-          'enable=yes profile=Any")))'
+          'enable=yes profile=Any"))))'
           ]

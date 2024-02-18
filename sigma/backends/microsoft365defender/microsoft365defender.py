@@ -195,6 +195,7 @@ class Microsoft365DefenderBackend(TextQueryBackend):
                                 SigmaString(x), state)) for x in arg.s if not isinstance(x, SpecialChars)
                         ]
                     )
+                    expr = self.group_expression.format(expr=expr)
                 else:
                     expr = self.convert_condition_field_eq_val_str(new_cond, state)
                 wildcard_exprs_list.append(expr)
