@@ -1,0 +1,1 @@
+{"AWSCloudWatch": [{"name": "TenantId", "type": "string"}, {"name": "TimeGenerated", "type": "datetime"}, {"name": "Message", "type": "string"}, {"name": "SourceSystem", "type": "string"}, {"name": "Type", "type": "string"}, {"name": "_IsBillable", "type": "string"}, {"name": "_BilledSize", "type": "real"}]}

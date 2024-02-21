@@ -1,0 +1,1 @@
+{"_GetWatchlistAlias": {"body": "union Watchlist, ConfidentialWatchlist | where _DTItemType == 'watchlist' | summarize hint.shufflekey=_DTItemId arg_max(_DTTimestamp, _DTItemStatus, WatchlistAlias) by _DTItemId | where _DTItemStatus != 'Delete' | distinct WatchlistAlias", "params": null}}

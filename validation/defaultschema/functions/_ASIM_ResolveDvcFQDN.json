@@ -1,0 +1,1 @@
+{"_ASIM_ResolveDvcFQDN": {"body": "T\r\n| invoke _ASIM_ResolveFQDN (field)\r\n| project-rename \r\n    DvcHostname = ExtractedHostname,\r\n    DvcDomain = Domain,\r\n    DvcFQDN = FQDN,\r\n    DvcDomainType = DomainType\r\n", "params": "T:(*), field:string"}}
