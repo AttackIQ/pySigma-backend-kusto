@@ -29,14 +29,22 @@ def download_rules():
     logger.info("Downloaded and extracted Sigma rules to %s", BASE_PATH)
 
 
-def parse_and_create_detection(rule_file: str):
-    rule_data = rule_file.read_text()
+def parse_rule_file(rule_file: str):
+    with open(rule_file, 'r') as f:
+        rule_data = f.read()
     rule = SigmaRule.from_yaml(rule_data)
+
+    backend = Microsoft365DefenderBackend()
+    try:
+        rule_query = str(backend.convert_rule(rule)[0]).strip()
+    except Exception as e:
+        return {}
     rule_json = {
         'id': str(rule.id),
         'name': rule.title,
         'description': rule.description,
         'severity': str(rule.level),
+        'query': rule_query,
         'queryFrequency': '10m',
         'queryPeriod': '10m',
         'triggerOperator': 'gt',
@@ -44,21 +52,29 @@ def parse_and_create_detection(rule_file: str):
         'version': '1.0.0',
         'kind': 'scheduled',
     }
+    return rule_json
 
-    backend = Microsoft365DefenderBackend()
-    try:
-        rule_query = str(backend.convert_rule(rule)[0]).strip()
-    except Exception as e:
-        rule_query = None
-    if rule_query:
+def validate_sentinel(rule_file: str):
+    rule_json = parse_rule_file(rule_file)
+    if rule_json:
         # Replace special characters in the rule name to avoid issues with the file system
         rule_filename = re.sub(r"([\\/\.\s])", "_", rule_json.get('name'))
         detection_path = os.path.join(DETECTIONS_PATH, f"{rule_filename}.yaml")
-        # Create the detection file, use LiteralScalarStrings for the query to avoid escaping issues
-        rule_json['query'] = ruamel.yaml.scalarstring.LiteralScalarString(rule_query)
-        # Write the detection file
+        rule_json['query'] = ruamel.yaml.scalarstring.LiteralScalarString(rule_json['query'])
+        # Create the detection file
         with open(detection_path, "w") as f:
             ruamel.yaml.YAML().dump(rule_json, f)
+
+
+def validate_kql(rule_file: str):
+    rule_json = parse_rule_file(rule_file)
+    if rule_json:
+        # Replace special characters in the rule name to avoid issues with the file system
+        rule_filename = re.sub(r"([\\/\.\s])", "_", rule_json.get('name'))
+        detection_path = os.path.join(DETECTIONS_PATH, f"{rule_filename}.kql")
+        # Write the detection file
+        with open(detection_path, "w") as f:
+            f.write(rule_json['query'])
 
 
 def main():
@@ -68,7 +84,7 @@ def main():
         total = 0
         for rule_file in Path(RULE_PATH).rglob("*.yml"):
             try:
-                futures.append(executor.submit(parse_and_create_detection, rule_file))
+                futures.append(executor.submit(validate_kql, str(rule_file)))
             except Exception as e:
                 print(e)
 
