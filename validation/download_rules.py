@@ -78,7 +78,13 @@ def validate_kql(rule_file: str):
 
 
 def main():
+    # Download Sigma Core++ latest package and unzip into rules folder
     download_rules()
+
+    # Create any missing dirs
+    os.makedirs(DETECTIONS_PATH, exist_ok=True)
+
+    # Process all rule files, create KQL query files for any valid rules
     with ThreadPoolExecutor() as executor:
         futures = []
         total = 0
@@ -97,4 +103,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # AFTERWARDS, RUN `prevalidate sentinel unittest validation/detections validation/defaultschema`
+    # AFTERWARDS, RUN `prevalidate sentinel test --format kql validation/detections validation/defaultschema`
