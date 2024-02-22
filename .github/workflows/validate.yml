@@ -26,7 +26,7 @@ jobs:
       - name: Update prevalidator to latest version
         run: poetry add git+https://github.com/d3vzer0/prevalidate.git
       - name: Download rules and create KQL Query Files
-        run: python ./validation/download_rules.py
+        run: poetry run ./validation/download_rules.py
       - name: Validate content
         run: prevalidate sentinel test --format kql ./validation/detections ./validation/defaultschema
       - name: Publish Test Results
