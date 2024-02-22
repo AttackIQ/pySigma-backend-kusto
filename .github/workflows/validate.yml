@@ -1,9 +1,9 @@
 name: KQL Conversion Validation
 on:
   push:
-    branches: [ "*" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "*" ]
+    branches: [ "**" ]
   workflow_dispatch:
 
 jobs:
