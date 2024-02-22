@@ -28,7 +28,7 @@ jobs:
       - name: Download rules and create KQL Query Files
         run: poetry run python ./validation/download_rules.py
       - name: Validate content
-        run: prevalidate sentinel test --format kql ./validation/detections ./validation/defaultschema
+        run: poetry run prevalidate sentinel test --format kql ./validation/detections ./validation/defaultschema
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action/composite@v2
         if: always()
