@@ -233,7 +233,7 @@ query_table_field_mappings = {
         'Image': 'InitiatingProcessFolderPath',
         'User': 'InitiatingProcessAccountName',
         'Protocol': 'Protocol',
-        'Initiated': 'Initiated',
+        # 'Initiated': ?,
         # 'SourceIsIpv6': ?,
         'SourceIp': 'LocalIP',
         'SourceHostname': 'DeviceName',
@@ -368,8 +368,7 @@ valid_fields_per_table = {
                             'InitiatingProcessAccountDomain', 'InitiatingProcessAccountName',
                             'InitiatingProcessAccountSid', 'InitiatingProcessAccountUpn',
                             'InitiatingProcessAccountObjectId', 'InitiatingProcessIntegrityLevel',
-                            'InitiatingProcessTokenElevation', 'ReportId', 'AppGuardContainerId', 'AdditionalFields',
-                            'Initiated']}
+                            'InitiatingProcessTokenElevation', 'ReportId', 'AppGuardContainerId', 'AdditionalFields']}
 
 # Mapping from ParentImage to InitiatingProcessParentFileName. Must be used alongside of ParentImageValueTransformation
 parent_image_field_mapping = {'ParentImage': 'InitiatingProcessParentFileName'}
