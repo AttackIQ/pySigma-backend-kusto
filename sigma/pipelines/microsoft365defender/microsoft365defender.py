@@ -11,7 +11,7 @@ from sigma.pipelines.common import (logsource_windows_process_creation, logsourc
 from sigma.processing.transformations import (FieldMappingTransformation, RuleFailureTransformation,
                                               ReplaceStringTransformation, SetStateTransformation,
                                               DetectionItemTransformation, ValueTransformation,
-                                              DetectionItemFailureTransformation)
+                                              DetectionItemFailureTransformation, DropDetectionItemTransformation)
 from sigma.processing.conditions import (IncludeFieldCondition, ExcludeFieldCondition,
                                          DetectionItemProcessingItemAppliedCondition, LogsourceCondition)
 from sigma.conditions import ConditionOR
@@ -493,6 +493,13 @@ replacement_proc_items = [
         transformation=HashesValuesTransformation(),
         field_name_conditions=[IncludeFieldCondition(['Hashes'])]
     ),
+    # Processing item to essentially ignore initiated field
+    ProcessingItem(
+        identifier="microsoft_365_defender_network_initiated_field",
+        transformation=DropDetectionItemTransformation(),
+        field_name_conditions=[IncludeFieldCondition(['Initiated'])],
+        rule_conditions=[LogsourceCondition(category='network_connection')],
+    )
 ]
 
 # ParentImage -> InitiatingProcessParentFileName
