@@ -27,9 +27,9 @@ from .microsoft365defender import (
     InvalidFieldTransformation,
 )
 
-process_events_table = '_ASim_ProcessEvent'
-registry_events_table = '_ASim_RegistryEvent'
-file_events_table = '_ASim_FileEvent'
+process_events_table = 'imProcessCreate'
+registry_events_table = 'imRegistry'
+file_events_table = 'imFileEvent'
 
 # FIELD MAPPINGS
 ## Field mappings from Sysmon (where applicable) fields to Advanced Hunting Query fields based on schema in tables
