@@ -18,6 +18,7 @@ class Microsoft365DefenderBackend(TextQueryBackend):
 
     # The backend generates grouping if required
     name: ClassVar[str] = "Microsoft 365 Defender backend"
+    identifier: ClassVar[str] = "microsoft365defender"
     formats: Dict[str, str] = {
         "default": "KQL for Microsoft 365 Defender Advanced Hunting queries",
     }

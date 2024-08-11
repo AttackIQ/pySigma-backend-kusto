@@ -597,4 +597,5 @@ def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = Tru
         name="Generic Log Sources to Windows 365 Defender Transformation",
         priority=10,
         items=pipeline_items,
+        allowed_backends=frozenset(["microsoft365defender"]),
     )
