@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Union, List
 
 from sigma.processing.finalization import Finalizer
 
@@ -16,9 +16,9 @@ class Microsoft365DefenderTableFinalizer(Finalizer):
     A custom table name can be specified in the finalizer, otherwise the table name will be selected based on the category of the rule.
     """
 
-    table_names: Union[str, list[str]] = field(default_factory=list)
+    table_names: Union[str, List[str]] = field(default_factory=list)
 
-    def apply(self, pipeline: "sigma.processing.pipeline.ProcessingPipeline", queries: list[str]) -> list[str]:
+    def apply(self, pipeline: "sigma.processing.pipeline.ProcessingPipeline", queries: List[str]) -> List[str]:
         if isinstance(self.table_names, str):
             self.table_names = [self.table_names] * len(queries)
 
