@@ -13,8 +13,7 @@ from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
 
 class Microsoft365DefenderBackend(TextQueryBackend):
-    """Microsoft 365 Defender KQL Backend. Automatically applied the microsoft_365_defender_pipeline from
-    sigma.pipelines.microsoft365defender."""
+    """Microsoft 365 Defender KQL Backend. """
 
     # The backend generates grouping if required
     name: ClassVar[str] = "Microsoft 365 Defender backend"
@@ -132,18 +131,6 @@ class Microsoft365DefenderBackend(TextQueryBackend):
     num_eq_token: ClassVar[str] = " == "
 
     # Override methods
-    # __init__() to deal with microsoft_365_defender_pipeline params, since it's automatically applied we need to pass
-    # params to __init__()
-    def __init__(self, processing_pipeline: Optional[ProcessingPipeline] = None,
-                 collect_errors: bool = False,
-                 transform_parent_image: bool = True,
-                 **kwargs):
-        super().__init__(processing_pipeline, collect_errors, **kwargs)
-        if self.processing_pipeline:
-            self.processing_pipeline = microsoft_365_defender_pipeline(transform_parent_image) + \
-                                       self.processing_pipeline
-        else:
-            self.processing_pipeline = microsoft_365_defender_pipeline(transform_parent_image)
 
     #  For numeric values, need == instead of =~
     def convert_condition_field_eq_val_num(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
@@ -221,18 +208,6 @@ class Microsoft365DefenderBackend(TextQueryBackend):
                     return self.not_token + "(" + expr + ")"
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
-
-    def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
-        """
-        Finalize conversion result of a query. The classes default behavior is to just return the query.
-        We will add the table name to the beginning of the query based on the category of the rule.
-        This is taken from the ProcessingPipeline state, which is why we automatically run the
-        pipeline as part of the backend.
-        """
-        query_table = state.processing_state.get('query_table', None)
-        query_table = query_table + "\n| where " if query_table else "search "
-
-        return query_table + query
 
     def convert_value_str(self, s: SigmaString, state: ConversionState) -> str:
         """Convert a SigmaString into a plain string which can be used in query."""
