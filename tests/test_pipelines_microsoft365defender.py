@@ -567,7 +567,7 @@ def test_microsoft_365_defender_pipeline_parent_image_false():
     """Tests passing transfer_parent_image=False to the pipeline"""
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
-        Microsoft365DefenderBackend(transform_parent_image=False).convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline(transform_parent_image=False)).convert(
             SigmaCollection.from_yaml("""
                     title: Test
                     status: test
@@ -586,7 +586,7 @@ def test_microsoft_365_defender_pipeline_parent_image_false():
 def test_microsoft_365_defender_pipeline_unsupported_rule_type():
     with pytest.raises(SigmaTransformationError,
                        match="Rule category not yet supported by the Microsoft 365 Defender Sigma backend."):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -604,7 +604,7 @@ def test_microsoft_365_defender_pipeline_unsupported_rule_type():
 def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceProcessEvents"):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -623,7 +623,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
 def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -642,7 +642,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
 def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceImageLoadEvents"):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -661,7 +661,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
 def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceRegistryEvents"):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -680,7 +680,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
 def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceNetworkEvents"):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -697,7 +697,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
 
 def test_microsoft_365_defender_pipeline_no_valid_hashes():
     with pytest.raises(InvalidHashAlgorithmError):
-        Microsoft365DefenderBackend().convert(
+        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test

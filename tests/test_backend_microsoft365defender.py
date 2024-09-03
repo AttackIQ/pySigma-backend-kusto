@@ -1,11 +1,12 @@
 import pytest
 from sigma.collection import SigmaCollection
 from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
+from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
 
 @pytest.fixture
 def microsoft365defender_backend():
-    return Microsoft365DefenderBackend()
+    return Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline())
 
 
 def test_microsoft365defender_and_expression(microsoft365defender_backend: Microsoft365DefenderBackend):
@@ -220,7 +221,7 @@ def test_microsoft365defender_escape_cmdline_slash(microsoft365defender_backend:
             references:
                 - https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-delete
             author: Nasreddine Bencherchali (Nextron Systems)
-            date: 2022/09/09
+            date: 2022-09-09
             tags:
                 - attack.impact
                 - attack.t1489
@@ -256,8 +257,8 @@ def test_microsoft365defender_cmdline_filters(microsoft365defender_backend: Micr
             references:
                 - https://www.operationblockbuster.com/wp-content/uploads/2016/02/Operation-Blockbuster-RAT-and-Staging-Report.pdf
             author: Markus Neis, Sander Wiebing
-            date: 2019/01/29
-            modified: 2023/02/10
+            date: 2019-01-29
+            modified: 2023-02-find  10
             tags:
                 - attack.defense_evasion
                 - attack.t1562.004
