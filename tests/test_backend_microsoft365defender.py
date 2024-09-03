@@ -258,7 +258,7 @@ def test_microsoft365defender_cmdline_filters(microsoft365defender_backend: Micr
                 - https://www.operationblockbuster.com/wp-content/uploads/2016/02/Operation-Blockbuster-RAT-and-Staging-Report.pdf
             author: Markus Neis, Sander Wiebing
             date: 2019-01-29
-            modified: 2023-02-find  10
+            modified: 2023-02-10
             tags:
                 - attack.defense_evasion
                 - attack.t1562.004
