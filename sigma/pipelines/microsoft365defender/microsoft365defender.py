@@ -18,6 +18,8 @@ from sigma.conditions import ConditionOR
 from sigma.types import SigmaString, SigmaType
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
 from sigma.rule import SigmaDetectionItem, SigmaDetection
+from .finalization import Microsoft365DefenderTableFinalizer
+from .transformations import SetQueryTableStateTransformation
 
 
 # CUSTOM TRANSFORMATIONS
@@ -407,7 +409,7 @@ category_to_conditions_mappings = {
 query_table_proc_items = [
     ProcessingItem(
         identifier=f"microsoft_365_defender_set_query_table_{table_name}",
-        transformation=SetStateTransformation("query_table", table_name),
+        transformation=SetQueryTableStateTransformation(table_name),
         rule_conditions=[
             category_to_conditions_mappings[rule_category] for rule_category in rule_categories
         ],
@@ -565,11 +567,13 @@ field_error_proc_items = [
 ]
 
 
-def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = True) -> ProcessingPipeline:
+def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = True, table_name: Optional[str] = None) -> ProcessingPipeline:
     """Pipeline for transformations for SigmaRules to use in the Microsoft 365 Defender Backend
     Field mappings based on documentation found here:
     https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-query-language?view=o365-worldwide
 
+    :param table_name: If specified, the table name will be used in the finalizer, otherwise the table name will be selected based on the category of the rule.
+    :type table_name: Optional[str]
     :param transform_parent_image: If True, the ParentImage field will be mapped to InitiatingProcessParentFileName, and
     the parent process name in the ParentImage will be extracted and used. This is because the Microsoft 365 Defender
     table schema does not contain a InitiatingProcessParentFolderPath field like it does for InitiatingProcessFolderPath.
@@ -580,7 +584,7 @@ def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = Tru
     :return: ProcessingPipeline for Microsoft 365 Defender Backend
     :rtype: ProcessingPipeline
     """
-
+    
     pipeline_items = [
         *query_table_proc_items,
         *fieldmappings_proc_items,
@@ -598,4 +602,5 @@ def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = Tru
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["microsoft365defender"]),
+        finalizers=[Microsoft365DefenderTableFinalizer(table_names=table_name)]
     )
