@@ -2,14 +2,14 @@ import pytest
 from sigma.exceptions import SigmaTransformationError
 from sigma.pipelines.microsoft365defender.microsoft365defender import InvalidHashAlgorithmError
 
-from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
+from sigma.backends.kusto import KustoBackend
 from sigma.collection import SigmaCollection
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
 
 def test_microsoft_365_defender_username_transformation():
     """Tests splitting username up into different fields if it includes a domain"""
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -42,7 +42,7 @@ def test_microsoft_365_defender_username_transformation():
 
 def test_microsoft_365_defender_hashes_values_transformation():
     """Test for getting hash algo/value from Hashes field and creating new detection items from them"""
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -71,7 +71,7 @@ def test_microsoft_365_defender_hashes_values_transformation():
 
 
 def test_microsoft_365_defender_process_creation_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -88,7 +88,7 @@ def test_microsoft_365_defender_process_creation_simple():
 
 
 def test_microsoft_365_defender_image_load_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -105,7 +105,7 @@ def test_microsoft_365_defender_image_load_simple():
 
 
 def test_microsoft_365_defender_file_access_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -122,7 +122,7 @@ def test_microsoft_365_defender_file_access_simple():
 
 
 def test_microsoft_365_defender_file_change_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -139,7 +139,7 @@ def test_microsoft_365_defender_file_change_simple():
 
 
 def test_microsoft_365_defender_file_delete_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -156,7 +156,7 @@ def test_microsoft_365_defender_file_delete_simple():
 
 
 def test_microsoft_365_defender_file_event_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -173,7 +173,7 @@ def test_microsoft_365_defender_file_event_simple():
 
 
 def test_microsoft_365_defender_file_rename_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -190,7 +190,7 @@ def test_microsoft_365_defender_file_rename_simple():
 
 
 def test_microsoft_365_defender_registry_add_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -207,7 +207,7 @@ def test_microsoft_365_defender_registry_add_simple():
 
 
 def test_microsoft_365_defender_registry_delete_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -224,7 +224,7 @@ def test_microsoft_365_defender_registry_delete_simple():
 
 
 def test_microsoft_365_defender_registry_event_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -241,7 +241,7 @@ def test_microsoft_365_defender_registry_event_simple():
 
 
 def test_microsoft_365_defender_registry_set_simple():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -258,7 +258,7 @@ def test_microsoft_365_defender_registry_set_simple():
 
 
 def test_microsoft_365_defender_process_creation_field_mapping():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -308,7 +308,7 @@ def test_microsoft_365_defender_process_creation_field_mapping():
 
 
 def test_microsoft_365_defender_image_load_field_mapping():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -345,7 +345,7 @@ def test_microsoft_365_defender_image_load_field_mapping():
 
 
 def test_microsoft_365_defender_file_event_field_mapping():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -372,7 +372,7 @@ def test_microsoft_365_defender_file_event_field_mapping():
 
 
 def test_microsoft_365_defender_registry_event_field_mapping():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -397,7 +397,7 @@ def test_microsoft_365_defender_registry_event_field_mapping():
 
 
 def test_microsoft_365_defender_network_connection_field_mapping():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -426,7 +426,7 @@ def test_microsoft_365_defender_network_connection_field_mapping():
 
 
 def test_microsoft_365_defender_network_connection_cidr():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -444,7 +444,7 @@ def test_microsoft_365_defender_network_connection_cidr():
 
 
 def test_microsoft_365_defender_pipeline_registrykey_replacements():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -475,7 +475,7 @@ def test_microsoft_365_defender_pipeline_registrykey_replacements():
 
 
 def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
             title: Test
             status: test
@@ -502,7 +502,7 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
 
 
 def test_microsoft_365_defender_pipeline_valid_hash_in_list():
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -524,7 +524,7 @@ def test_microsoft_365_defender_pipeline_valid_hash_in_list():
 
 def test_microsoft_365_defender_pipeline_generic_field():
     """Tests"""
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -544,7 +544,7 @@ def test_microsoft_365_defender_pipeline_generic_field():
 
 def test_microsoft_365_defender_pipeline_parent_image():
     """Tests ParentImage for non-process-creation rules"""
-    assert Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
         SigmaCollection.from_yaml("""
                 title: Test
                 status: test
@@ -567,7 +567,7 @@ def test_microsoft_365_defender_pipeline_parent_image_false():
     """Tests passing transfer_parent_image=False to the pipeline"""
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline(transform_parent_image=False)).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline(transform_parent_image=False)).convert(
             SigmaCollection.from_yaml("""
                     title: Test
                     status: test
@@ -586,7 +586,7 @@ def test_microsoft_365_defender_pipeline_parent_image_false():
 def test_microsoft_365_defender_pipeline_unsupported_rule_type():
     with pytest.raises(SigmaTransformationError,
                        match="Rule category not yet supported by the Microsoft 365 Defender Sigma backend."):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -604,7 +604,7 @@ def test_microsoft_365_defender_pipeline_unsupported_rule_type():
 def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceProcessEvents"):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -623,7 +623,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
 def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -642,7 +642,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
 def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceImageLoadEvents"):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -661,7 +661,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
 def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceRegistryEvents"):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -680,7 +680,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
 def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
     with pytest.raises(SigmaTransformationError,
                        match="Invalid SigmaDetectionItem field name encountered.*DeviceNetworkEvents"):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
@@ -697,7 +697,7 @@ def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
 
 def test_microsoft_365_defender_pipeline_no_valid_hashes():
     with pytest.raises(InvalidHashAlgorithmError):
-        Microsoft365DefenderBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
+        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
             SigmaCollection.from_yaml("""
                 title: test
                 status: test
