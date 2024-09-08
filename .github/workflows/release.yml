@@ -4,7 +4,7 @@ on:
     types: [published]
   push:
     tags:
-      - v*.*.*s
+      - v*.*.*
     branches:
       - microsoft_365_defender_stub  # Target only the stub branch
 
@@ -22,11 +22,7 @@ jobs:
           cache: poetry
       - name: Verify versioning
         run: |
-            # Strip the "s" suffix from the Git tag
-            TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-            TAG_VERSION="${TAG_VERSION%s}"
-            # Compare stripped tag with the version in pyproject.toml
-            [ "$(poetry version -s)" == "$TAG_VERSION" ]
+            [ "$(poetry version -s)" == "${GITHUB_REF#refs/tags/v}" ]
       - name: Install dependencies
         run: poetry install
       #- name: Run tests
