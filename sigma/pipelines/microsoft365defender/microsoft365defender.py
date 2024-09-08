@@ -567,13 +567,13 @@ field_error_proc_items = [
 ]
 
 
-def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = True, table_name: Optional[str] = None) -> ProcessingPipeline:
+def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = True, query_table: Optional[str] = None) -> ProcessingPipeline:
     """Pipeline for transformations for SigmaRules to use in the Microsoft 365 Defender Backend
     Field mappings based on documentation found here:
     https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-query-language?view=o365-worldwide
 
-    :param table_name: If specified, the table name will be used in the finalizer, otherwise the table name will be selected based on the category of the rule.
-    :type table_name: Optional[str]
+    :param query_table: If specified, the table name will be used in the finalizer, otherwise the table name will be selected based on the category of the rule.
+    :type query_table: Optional[str]
     :param transform_parent_image: If True, the ParentImage field will be mapped to InitiatingProcessParentFileName, and
     the parent process name in the ParentImage will be extracted and used. This is because the Microsoft 365 Defender
     table schema does not contain a InitiatingProcessParentFolderPath field like it does for InitiatingProcessFolderPath.
@@ -602,5 +602,5 @@ def microsoft_365_defender_pipeline(transform_parent_image: Optional[bool] = Tru
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["microsoft365defender"]),
-        finalizers=[Microsoft365DefenderTableFinalizer(table_names=table_name)]
+        finalizers=[Microsoft365DefenderTableFinalizer(table_names=query_table)]
     )

@@ -9,17 +9,16 @@ from sigma.processing.pipeline import ProcessingPipeline
 from sigma.rule import SigmaRule
 from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
 
-from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
 
-class Microsoft365DefenderBackend(TextQueryBackend):
+class KustoBackend(TextQueryBackend):
     """Microsoft 365 Defender KQL Backend. """
 
     # The backend generates grouping if required
-    name: ClassVar[str] = "Microsoft 365 Defender backend"
-    identifier: ClassVar[str] = "microsoft365defender"
+    name: ClassVar[str] = "Kusto backend"
+    identifier: ClassVar[str] = "kusto"
     formats: Dict[str, str] = {
-        "default": "KQL for Microsoft 365 Defender Advanced Hunting queries",
+        "default": "Kusto Query Language search strings",
     }
 
     requires_pipeline: bool = False  # m365 pipeline is automatically applied
