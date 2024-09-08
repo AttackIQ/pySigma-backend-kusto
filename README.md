@@ -1,66 +1,54 @@
+# 🛡️ pySigma Microsoft 365 Defender Backend
+
 ![Tests](https://github.com/AttackIQ/pySigma-backend-microsoft365defender/actions/workflows/test.yml/badge.svg)
 ![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/slincoln-aiq/9c0879725c7f94387801390bbb0ac8d6/raw/slincoln-aiq-pySigma-backend-microsoft365defender.json)
 ![Status](https://img.shields.io/badge/Status-pre--release-orange)
 
-# pySigma Microsoft 365 Defender Backend
+## 📖 Overview
 
-## Overview
+This backend for [pySigma](https://github.com/SigmaHQ/pySigma) enables the transformation of Sigma Rules into [Microsoft Advanced Hunting Queries](https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-query-language?view=o365-worldwide) using [Kusto Query Language (KQL)](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/).
 
-This is
-the [Microsoft 365 Defender](https://learn.microsoft.com/en-us/microsoft-365/security/defender/?view=o365-worldwide)
-backend for [pySigma](https://github.com/SigmaHQ/pySigma), previously known as the mdatp backend for sigmac. This
-backend allows the transformation & conversion of Sigma Rules
-into [Microsoft Advanced Hunting Queries](https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-query-language?view=o365-worldwide)
-in [Kusto Query
-Language (KQL)](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/). It
-provides
-the package `sigma.backends.microsoft365defender` with the `Microsoft365DefenderBackend` class.
-Further, it contains the `microsoft_365_defender_pipeline` processing pipeline for field renames and error handling.
-This pipeline is automatically applied to `SigmaRule` and `SigmaCollection` objects passed to
-the `Microsoft365DefenderBackend` class.
+### 🔑 Key Features
+- Provides `sigma.backends.microsoft365defender` package with `Microsoft365DefenderBackend` class
+- Includes `microsoft_365_defender_pipeline` for field renames and error handling
+- Supports output format: Query string for Advanced Hunting Queries in KQL
 
-It supports the following output formats:
+### 🧑‍💻 Maintainer
+- [Stephen Lincoln](https://github.com/slincoln-aiq) via [AttackIQ](https://github.com/AttackIQ)
 
-* default: Query string for Advanced Hunting Queries in Kusto Query Language (KQL)
+## 🚀 Installation
 
-This backend is currently maintained by:
-
-* [Stephen Lincoln](https://github.com/slincoln-aiq) via [AttackIQ](https://github.com/AttackIQ)
-
-## Installation
-
-This pySigma backend can be installed from PyPI via pip, or by using pySigma's plugin functionality
-
-### pip
+### 📦 Using pip
 
 ```bash
 pip install pysigma-backend-microsoft365defender
 ```
 
-### pySigma Plugins (requires pySigma >= 0.9.0)
+
+### 🔌 Using pySigma Plugins (requires pySigma >= 0.10.0)
 
 ```python
-from sigma.plugins import SigmaPluginDirectory  # Requires pySigma >= 0.9.0
+from sigma.plugins import SigmaPluginDirectory  # Requires pySigma >= 0.10.0
 
 plugins = SigmaPluginDirectory.default_plugin_directory()
 plugins.get_plugin_by_id("microsoft365defender").install()
 ```
 
-## Dependencies
 
-* pySigma >= v0.9.0
+## 🔧 Dependencies
+- pySigma >= v0.10.0
 
-## Usage
+## 📘 Usage
 
-### sigma-cli
+### 🖥️ sigma-cli
 
 Use with `sigma-cli` per [typical sigma-cli usage](https://github.com/SigmaHQ/sigma-cli#usage):
 
 ```bash
-sigma convert -t microsoft365defender -f default -s ~/sigma/rules
+sigma convert -t microsoft365defender -p microsoft_365_defender -f default -s ~/sigma/rules
 ```
 
-### pySigma
+### 🐍 Python Script
 
 Use the backend and pipeline in a standalone Python script. Note, the backend automatically applies the pipeline, but
 you can manually add it if you would like.
@@ -103,136 +91,67 @@ DeviceProcessEvents
 | where ProcessCommandLine contains "mimikatz.exe"
 ````
 
-#### Pipeline & Backend Args (New in 0.2.0)
+## 🛠️ Advanced Features
 
-`transform_parent_image`: If `True`, the ParentImage field will be mapped to InitiatingProcessParentFileName, and
-the parent process name in the ParentImage will be extracted and used. If False, using ParentImage in a rule with a
-category other than process_creation will raise `InvalidFieldTransformation` exception. This is because the Microsoft
-365 Defender table schema does not contain a InitiatingProcessParentFolderPath field like it does for
-InitiatingProcessFolderPath. This applies to all rule categories *except* process_creation, as the ParentImage field is
-mapped to InitiatingProcessFolderPath and Image field is mapped to FolderPath in the Microsoft schema table for this
-event category. Defaults to `True`. Example:
+### 🔄 Pipeline & Backend Args (New in 0.2.0)
+
+- `transform_parent_image`: Controls ParentImage field mapping behavior
+  - When set to `True` (default), maps ParentImage to InitiatingProcessParentFileName
+  - When set to `False`, maps ParentImage to InitiatingProcessFileName
+  - Useful for adjusting field mappings based on specific rule requirements
+  - Example usage:
 
 ```python
-from sigma.rule import SigmaRule
-from sigma.backends.microsoft365defender import Microsoft365DefenderBackend
-from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
-from copy import deepcopy
-
-# Define an example rule as a YAML str
-sigma_rule_orig = SigmaRule.from_yaml("""
-  title: Mimikatz CommandLine
-  status: test
-  logsource:
-      category: file_event
-      product: windows
-  detection:
-      sel:
-          ParentImage: C:\\Windows\\System32\\whoami.exe
-      condition: sel
-""")
-sigma_rule = deepcopy(sigma_rule_orig)
-# Specify `transform_parent_image` in backend directly, default is True so nothing is needed
-m365def_backend = Microsoft365DefenderBackend()
-print("With transform_parent_image=True")
-print("Output:\n")
-print(m365def_backend.convert_rule(sigma_rule)[0], end="\n-----\n")
-
-sigma_rule = deepcopy(sigma_rule_orig)
-# Now try it with transform_parent_image=False
-m365def_backend = Microsoft365DefenderBackend(transform_parent_image=False)
-print("With transform_parent_image=False")
-print("Output:\n")
-try:
-    print(m365def_backend.convert_rule(sigma_rule)[0])
-except Exception as exc:
-    print(exc)
-
-# Can also be used via the pipeline
-pipeline = microsoft_365_defender_pipeline(transform_parent_image=True)
-
+pipeline = microsoft_365_defender_pipeline(transform_parent_image=False)
 ```
 
-Output:
+This argument allows fine-tuning of the ParentImage field mapping, which can be crucial for accurate rule conversion in certain scenarios. By default, it follows the behavior of mapping ParentImage to the parent process name, but setting it to `False` allows for mapping to the initiating process name instead.
 
-```
-With transform_parent_image=True
-Output:
+## 📊 Rule Support
 
-DeviceFileEvents
-| where InitiatingProcessParentFileName =~ "whoami.exe"
------
-With transform_parent_image=False
-Output:
+### 🖥️ Supported Categories (product=windows)
+- process_creation
+- image_load
+- network_connection
+- file_access, file_change, file_delete, file_event, file_rename
+- registry_add, registry_delete, registry_event, registry_set
 
-Invalid SigmaDetectionItem field name encountered: ParentImage. Please use valid fields for the DeviceFileEvents table, or the following fields that have keymappings in this pipeline:
-CommandLine, Company, Description, EventType, Hashes, Image, OriginalFileName, ParentCommandLine, ParentProcessId, ProcessId, Product, SourceImage, TargetFilename, User, md5, sha1, sha256
+## 🔍 Processing Pipeline
 
-```
+The `microsoft_365_defender_pipeline` includes custom `ProcessingPipeline` classes:
 
-## Rule Support
+- 🔀 ParentImageValueTransformation
+  - Extracts the parent process name from the Sysmon ParentImage field
+  - Maps to InitiatingProcessParentFileName (as InitiatingProcessParentFolderPath is not available)
+  - Use before mapping ParentImage to InitiatingProcessFileName
 
-The following `category` types are currently supported for only `product=windows`:
+- 🔢 SplitDomainUserTransformation
+  - Splits the User field into separate domain and username fields
+  - Handles Sysmon `User` field containing both domain and username
+  - Creates new SigmaDetectionItems for Domain and Username
+  - Use with field_name_condition for username fields
 
-* process_creation
-* image_load
-* network_connection
-* file_access, file_change, file_delete, file_event, file_rename
-* registry_add, registry_delete, registry_event, registry_set
+- 🔐 HashesValuesTransformation
+  - Processes 'Hashes' field values in 'algo:hash_value' format
+  - Creates new SigmaDetectionItems for each hash type
+  - Infers hash type based on length if not specified
+  - Use with field_name_condition for the Hashes field
 
-## Processing Pipeline
+- 📝 RegistryActionTypeValueTransformation
+  - Adjusts registry ActionType values to match Microsoft DeviceRegistryEvents table
+  - Ensures compatibility between Sysmon and Microsoft 365 Defender schemas
 
-Along with field mappings and error handling, the `microsoft_365_defender_pipeline` contains the following
-custom `ProcessingPipeline` classes to help ensure correct fields and values and are automatically applied as part of
-the pipeline in the backend:
+- ❌ InvalidFieldTransformation
+  - Extends DetectionItemFailureTransformation
+  - Includes the field name in the error message
+  - Helps identify unsupported or invalid fields in the rule
 
-* `ParentImageValueTransformation`: (New in v0.2.0) Custom ValueTransformation extract the parent process name from the
-  Sysmon ParentImage field. Unfortunately, none of the table schemas have InitiatingProcessParentFolderPath like they do
-  InitiatingProcessFolderPath. Due to this, we cannot directly map the Sysmon `ParentImage` field to a table field.
-  However, InitiatingProcessParentFileName is an available field in nearly all tables, so we will extract the
-  process name and use that instead.
+These custom transformations are automatically applied as part of the pipeline in the backend, ensuring correct field mappings and error handling for Microsoft 365 Defender queries.
 
-  Use this transformation BEFORE mapping ParentImage to InitiatingProcessFileName
+## ⚠️ Limitations and Constraints
 
-* `SplitDomainUserTransformation`: Custom DetectionItemTransformation transformation to split a User field into separate
-  domain and user fields,
-  if applicable. This is to handle the case where the Sysmon `User` field may contain a domain AND username, and
-  Advanced Hunting queries separate out the domain and username into separate fields.
-  If a matching field_name_condition field uses the schema DOMAIN\\USER, a new SigmaDetectionItem
-  will be made for the Domain and put inside a SigmaDetection with the original User SigmaDetectionItem (minus the
-  domain) for the
-  matching SigmaDetectionItem.
+- Works only for `product=windows` and listed rule categories
+- Unsupported fields may cause exceptions (improvements in progress)
 
-  You should use this with a field_name_condition for `IncludeFieldName(['field', 'names', 'for', 'username']`)
-
-
-* `HashesValuesTransformation`: Custom DetectionItemTransformation to take a list of values in the 'Hashes' field, which
-  are expected to be
-  'algo:hash_value', and create new SigmaDetectionItems for each hash type, where the values is a list of
-  SigmaString hashes. If the hash type is not part of the value, it will be inferred based on length.
-
-  Use with field_name_condition for Hashes field
-
-
-* `RegistryActionTypeValueTransformation`: Custom ValueTransformation transformation. The Microsoft DeviceRegistryEvents
-  table expect the ActionType to
-  be a slightly different set of values than what Sysmon specified, so this will change them to the correct value.
-
-
-* `InvalidFieldTransformation`: Same as `DetectionItemFailureTransformation` in native pySigma transformations.py, but
-  it
-  also includes the field name in the error message that caused the error.
-
-## Limitations and Constraints
-
-The pipeline/backend will only work for `product=windows` and the rule categories listed above (for now).
-
-Fields found in Sigma Rules that are not specified in each field mappings dictionaries in the `microsoft365defender`
-pipeline
-will cause an exception to be raised. The fields that are allowed are most Syslog fields, as well as any field
-that can be found in the Microsoft 365 Advanced Hunting
-Query [table schema](https://learn.microsoft.com/en-us/microsoft-365/security/defender/advanced-hunting-schema-tables?view=o365-worldwide#learn-the-schema-tables)
-
-We are working on removing unsupported fields from queries and adding them as a comment in the query so the user will be
-aware of unsupported fields, but still be able to transform/convert rules without error.
+For more detailed information, please refer to the full documentation.
 
