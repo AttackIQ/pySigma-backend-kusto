@@ -5,6 +5,9 @@ description = "This package has been renamed to pySigma-backend-kusto. Install p
 authors = ["Stephen Lincoln <stephen.lincoln@attackiq.com>"]
 license = "LGPL-3.0-only"
 repository = "https://github.com/AttackIQ/pySigma-backend-kusto"
+packages = [
+    { include = "pysigma_backend_microsoft365defender" }  # Include the empty package
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
