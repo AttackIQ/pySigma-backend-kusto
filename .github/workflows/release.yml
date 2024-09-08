@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - v*.*.*
+    branches:
+      - microsoft_365_defender_stub  # Target only the stub branch
 
 jobs:
   build-and-publish:
