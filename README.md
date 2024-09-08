@@ -104,6 +104,7 @@ DeviceProcessEvents
   - Example usage:
 
 ```python
+from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 pipeline = microsoft_365_defender_pipeline(transform_parent_image=False)
 ```
 
