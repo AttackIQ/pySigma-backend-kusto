@@ -495,4 +495,5 @@ def sentinel_asim_pipeline(transform_parent_image: Optional[bool] = True) -> Pro
         name="Generic Log Sources to Windows 365 ASIM Transformation",
         priority=10,
         items=pipeline_items,
+        allowed_backends=frozenset(["kusto"]),
     )

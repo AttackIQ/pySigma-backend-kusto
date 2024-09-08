@@ -133,8 +133,8 @@ via Python
 
 ```python
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
-
 my_pipeline = microsoft_365_defender_pipeline(query_table="MyTestTable")  # Or ["MyTestTable"]
+```
 
 ## 📊 Rule Support
 
