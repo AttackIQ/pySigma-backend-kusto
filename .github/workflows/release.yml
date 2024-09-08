@@ -38,5 +38,4 @@ jobs:
       #  if: ${{ github.event_name == 'push' }}
       #  run: poetry publish -r testpypi
       - name: Publish to PyPI
-        if: ${{ github.event_name == 'release' }}
         run: poetry publish
