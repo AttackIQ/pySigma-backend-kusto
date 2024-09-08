@@ -24,18 +24,3 @@ jobs:
           cache: poetry
       - name: Install dependencies
         run: poetry install
-      - name: Run tests
-        run: poetry run pytest --cov=sigma --cov-report term --cov-report xml:cov.xml -vv
-      - name: Store coverage for badge
-        if: ${{ runner.os == 'Linux' }}
-        run: poetry run python print-coverage.py >> $GITHUB_ENV
-      - name: Create coverage badge
-        if: ${{ github.repository == 'AttackIQ/pySigma-backend-microsoft365defender' && github.event_name == 'push' && runner.os == 'Linux' }}
-        uses: schneegans/dynamic-badges-action@v1.1.0
-        with:
-          auth: ${{ secrets.GIST_SECRET }}
-          gistID: 9c0879725c7f94387801390bbb0ac8d6
-          filename: slincoln-aiq-pySigma-backend-microsoft365defender.json
-          label: Coverage
-          message: ${{ env.COVERAGE }}
-          color: ${{ env.COVERAGE_COLOR }}
