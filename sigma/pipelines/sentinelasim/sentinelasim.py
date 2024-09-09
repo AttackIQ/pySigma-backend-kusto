@@ -19,13 +19,17 @@ from sigma.types import SigmaString, SigmaType
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
 from sigma.rule import SigmaDetectionItem, SigmaDetection
 
-from .microsoft365defender import (
+from sigma.pipelines.microsoft365defender.microsoft365defender import (
     SplitDomainUserTransformation,
     HashesValuesTransformation,
     RegistryActionTypeValueTransformation,
     ParentImageValueTransformation,
     InvalidFieldTransformation,
 )
+
+from sigma.pipelines.microsoft365defender.finalization import Microsoft365DefenderTableFinalizer
+from sigma.pipelines.microsoft365defender.transformations import SetQueryTableStateTransformation
+
 
 process_events_table = 'imProcessCreate'
 registry_events_table = 'imRegistry'
@@ -307,7 +311,7 @@ category_to_conditions_mappings = {
 query_table_proc_items = [
     ProcessingItem(
         identifier=f"microsoft_365_defender_set_query_table_{table_name}",
-        transformation=SetStateTransformation("query_table", table_name),
+        transformation=SetQueryTableStateTransformation(table_name),
         rule_conditions=[
             category_to_conditions_mappings[rule_category] for rule_category in rule_categories
         ],
@@ -465,7 +469,7 @@ field_error_proc_items = [
 ]
 
 
-def sentinel_asim_pipeline(transform_parent_image: Optional[bool] = True) -> ProcessingPipeline:
+def sentinel_asim_pipeline(transform_parent_image: Optional[bool] = True, query_table: Optional[str] = None) -> ProcessingPipeline:
     """Pipeline for transformations for SigmaRules to use with the Sentinel ASIM Functions
 
     :param transform_parent_image: If True, the ParentImage field will be mapped to InitiatingProcessParentFileName, and
@@ -496,4 +500,5 @@ def sentinel_asim_pipeline(transform_parent_image: Optional[bool] = True) -> Pro
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
+        finalizers=[Microsoft365DefenderTableFinalizer(table_names=query_table)]
     )
