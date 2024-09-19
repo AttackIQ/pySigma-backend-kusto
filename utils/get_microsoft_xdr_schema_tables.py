@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
-import requests
 import base64
-import yaml
-from typing import List, Dict
-import re
 import os
+import re
+from datetime import datetime, timezone
+from typing import Dict, List
+
+import requests
+import yaml
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -74,7 +75,7 @@ def write_schema(output_file: str, schema_tables: Dict[str, dict]):
     with open(output_file, "w") as f:
         f.write("# This file is auto-generated. Do not edit manually.\n")
         f.write(f"# Last updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n")
-        f.write("MICROSOFT365DEFENDER_TABLES = {\n")
+        f.write("MICROSOFT_XDR_TABLES = {\n")
         for table, fields in schema_tables.items():
             f.write(f'    "{table}": {{\n')
             for field, info in fields.items():

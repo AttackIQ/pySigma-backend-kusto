@@ -1,7 +1,7 @@
 # This file is auto-generated. Do not edit manually.
 # Last updated: 2024-09-12 19:59:53 UTC
 
-MICROSOFT365DEFENDER_TABLES = {
+MICROSOFT_XDR_TABLES = {
     "AADSignInEventsBeta": {
         "Timestamp": {"data_type": "datetime", "description": 'Date and time when the record was generated'},
         "Application": {"data_type": "string", "description": 'Application that performed the recorded action'},
