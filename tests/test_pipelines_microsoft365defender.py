@@ -1,6 +1,6 @@
 import pytest
 from sigma.exceptions import SigmaTransformationError
-from sigma.pipelines.microsoft365defender.microsoft365defender import InvalidHashAlgorithmError
+from sigma.pipelines.microsoft365defender.errors import InvalidHashAlgorithmError
 
 from sigma.backends.kusto import KustoBackend
 from sigma.collection import SigmaCollection
