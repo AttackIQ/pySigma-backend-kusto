@@ -8,8 +8,7 @@ from bs4 import BeautifulSoup
 BASE_URL = "https://learn.microsoft.com/en-us/azure/sentinel"
 OUTPUT_FILE = "sigma/pipelines/sentinelasim/tables.py"
 
-# TODO: Add a function to get the common fields from the ASIM schemas
-# TODO: Add a function to write the table data to a file
+# TODO: Fix common field schema not writing to file
 
 
 def get_request(url: str) -> requests.Response:
