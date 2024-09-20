@@ -1,16 +1,18 @@
 import pytest
-from sigma.exceptions import SigmaTransformationError
-from sigma.pipelines.microsoft365defender.errors import InvalidHashAlgorithmError
 
 from sigma.backends.kusto import KustoBackend
 from sigma.collection import SigmaCollection
-from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
+from sigma.exceptions import SigmaTransformationError
+from sigma.pipelines.microsoft365defender import microsoft_xdr_pipeline
+from sigma.pipelines.microsoft365defender.errors import InvalidHashAlgorithmError
 
 
-def test_microsoft_365_defender_username_transformation():
+def test_microsoft_xdr_username_transformation():
     """Tests splitting username up into different fields if it includes a domain"""
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -31,19 +33,26 @@ def test_microsoft_365_defender_username_transformation():
                     sel4:
                         AccountName: username5
                     condition: any of sel*
-            """)
-    ) == ['DeviceProcessEvents\n| '
-          'where (ProcessCommandLine =~ "command1" and AccountName =~ "username1") or '
-          '(ProcessCommandLine =~ "command2" and (AccountName =~ "username2" and AccountDomain =~ "domain2")) or '
-          '(ProcessCommandLine =~ "command3" and (InitiatingProcessAccountName =~ "username3" or '
-          '(InitiatingProcessAccountName =~ "username4" and InitiatingProcessAccountDomain =~ "domain4"))) or '
-          'AccountName =~ "username5"']
+            """
+            )
+        )
+        == [
+            "DeviceProcessEvents\n| "
+            'where (ProcessCommandLine =~ "command1" and AccountName =~ "username1") or '
+            '(ProcessCommandLine =~ "command2" and (AccountName =~ "username2" and AccountDomain =~ "domain2")) or '
+            '(ProcessCommandLine =~ "command3" and (InitiatingProcessAccountName =~ "username3" or '
+            '(InitiatingProcessAccountName =~ "username4" and InitiatingProcessAccountDomain =~ "domain4"))) or '
+            'AccountName =~ "username5"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_hashes_values_transformation():
+def test_microsoft_xdr_hashes_values_transformation():
     """Test for getting hash algo/value from Hashes field and creating new detection items from them"""
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -62,17 +71,24 @@ def test_microsoft_365_defender_hashes_values_transformation():
                             - 8f16f88cfa1cf0d17c75403aa9614d806ebc00419763e0ecac3860decbcd9988
                             - invalidhashvalue
                     condition: any of sel*
-            """)
-    ) == ['DeviceProcessEvents\n'
-          '| where (MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" or SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" '
-          'or SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf") or '
-          '(MD5 =~ "0b49939d6415354c950b142a0b1e696a" or SHA1 =~ "4b2b79b6f371ca18f1216461cffeaddf6848a50e" or '
-          'SHA256 =~ "8f16f88cfa1cf0d17c75403aa9614d806ebc00419763e0ecac3860decbcd9988")']
+            """
+            )
+        )
+        == [
+            "DeviceProcessEvents\n"
+            '| where (MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" or SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" '
+            'or SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf") or '
+            '(MD5 =~ "0b49939d6415354c950b142a0b1e696a" or SHA1 =~ "4b2b79b6f371ca18f1216461cffeaddf6848a50e" or '
+            'SHA256 =~ "8f16f88cfa1cf0d17c75403aa9614d806ebc00419763e0ecac3860decbcd9988")'
+        ]
+    )
 
 
-def test_microsoft_365_defender_process_creation_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_process_creation_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -83,13 +99,18 @@ def test_microsoft_365_defender_process_creation_simple():
                     CommandLine: val1
                     Image: val2
                 condition: sel
-        """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "val1" and FolderPath =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "val1" and FolderPath =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_image_load_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_image_load_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -100,13 +121,18 @@ def test_microsoft_365_defender_image_load_simple():
                     ImageLoaded: val1
                     sha1: val2
                 condition: sel
-        """)
-    ) == ['DeviceImageLoadEvents\n| where FolderPath =~ "val1" and SHA1 =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceImageLoadEvents\n| where FolderPath =~ "val1" and SHA1 =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_file_access_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_file_access_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -117,13 +143,18 @@ def test_microsoft_365_defender_file_access_simple():
                     TargetFilename: val1
                     Image: val2
                 condition: sel
-        """)
-    ) == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_file_change_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_file_change_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -134,13 +165,18 @@ def test_microsoft_365_defender_file_change_simple():
                     TargetFilename: val1
                     Image: val2
                 condition: sel
-        """)
-    ) == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_file_delete_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_file_delete_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -151,13 +187,18 @@ def test_microsoft_365_defender_file_delete_simple():
                     TargetFilename: val1
                     Image: val2
                 condition: sel
-        """)
-    ) == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_file_event_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_file_event_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -168,13 +209,18 @@ def test_microsoft_365_defender_file_event_simple():
                     TargetFilename: val1
                     Image: val2
                 condition: sel
-        """)
-    ) == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_file_rename_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_file_rename_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -185,13 +231,18 @@ def test_microsoft_365_defender_file_rename_simple():
                     TargetFilename: val1
                     Image: val2
                 condition: sel
-        """)
-    ) == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_registry_add_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_registry_add_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -202,13 +253,18 @@ def test_microsoft_365_defender_registry_add_simple():
                     Image: val1
                     TargetObject: val2
                 condition: sel
-        """)
-    ) == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_registry_delete_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_registry_delete_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -219,13 +275,18 @@ def test_microsoft_365_defender_registry_delete_simple():
                     Image: val1
                     TargetObject: val2
                 condition: sel
-        """)
-    ) == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_registry_event_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_registry_event_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -236,13 +297,18 @@ def test_microsoft_365_defender_registry_event_simple():
                     Image: val1
                     TargetObject: val2
                 condition: sel
-        """)
-    ) == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_registry_set_simple():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_registry_set_simple():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -253,13 +319,18 @@ def test_microsoft_365_defender_registry_set_simple():
                     Image: val1
                     TargetObject: val2
                 condition: sel
-        """)
-    ) == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+        """
+            )
+        )
+        == ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    )
 
 
-def test_microsoft_365_defender_process_creation_field_mapping():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_process_creation_field_mapping():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -286,30 +357,37 @@ def test_microsoft_365_defender_process_creation_field_mapping():
                         ParentUser: heyitsmeyourparent
                         
                     condition: sel
-            """)
-    ) == ['DeviceProcessEvents\n| '
-          'where FolderPath =~ "C:\\\\Path\\\\to\\\\notmalware.exe" and '
-          'ProcessVersionInfoProductVersion == 1 and '
-          'ProcessVersionInfoFileDescription =~ "A Description" and '
-          'ProcessVersionInfoProductName =~ "pySigma" and '
-          'ProcessVersionInfoCompanyName =~ "AttackIQ" and '
-          'ProcessVersionInfoOriginalFileName =~ "malware.exe" and '
-          'ProcessId == 2 and '
-          'ProcessCommandLine =~ "definitely not malware" and '
-          'AccountName =~ "heyitsmeyourbrother" and '
-          'ProcessIntegrityLevel == 1 and '
-          'SHA1 =~ "a123123123" and '
-          'SHA256 =~ "a123123123" and '
-          'MD5 =~ "a123123123" and '
-          'InitiatingProcessId == 1 and '
-          'InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\Temp\\\\freemoney.pdf" and '
-          'InitiatingProcessCommandLine =~ "freemoney.pdf test exe please ignore" and '
-          'InitiatingProcessAccountName =~ "heyitsmeyourparent"']
+            """
+            )
+        )
+        == [
+            "DeviceProcessEvents\n| "
+            'where FolderPath =~ "C:\\\\Path\\\\to\\\\notmalware.exe" and '
+            "ProcessVersionInfoProductVersion == 1 and "
+            'ProcessVersionInfoFileDescription =~ "A Description" and '
+            'ProcessVersionInfoProductName =~ "pySigma" and '
+            'ProcessVersionInfoCompanyName =~ "AttackIQ" and '
+            'ProcessVersionInfoOriginalFileName =~ "malware.exe" and '
+            "ProcessId == 2 and "
+            'ProcessCommandLine =~ "definitely not malware" and '
+            'AccountName =~ "heyitsmeyourbrother" and '
+            "ProcessIntegrityLevel == 1 and "
+            'SHA1 =~ "a123123123" and '
+            'SHA256 =~ "a123123123" and '
+            'MD5 =~ "a123123123" and '
+            "InitiatingProcessId == 1 and "
+            'InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\Temp\\\\freemoney.pdf" and '
+            'InitiatingProcessCommandLine =~ "freemoney.pdf test exe please ignore" and '
+            'InitiatingProcessAccountName =~ "heyitsmeyourparent"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_image_load_field_mapping():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_image_load_field_mapping():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -331,22 +409,29 @@ def test_microsoft_365_defender_image_load_field_mapping():
                         User: username
 
                     condition: sel
-            """)
-    ) == ['DeviceImageLoadEvents\n| '
-          'where InitiatingProcessId == 1 and InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notmalware.exe" and '
-          'FolderPath =~ "C:\\\\Temp\\\\definitelynotmalware.exe" and InitiatingProcessVersionInfoProductVersion == 1 '
-          'and InitiatingProcessVersionInfoFileDescription =~ "A Description" and '
-          'InitiatingProcessVersionInfoProductName =~ "A Product" and '
-          'InitiatingProcessVersionInfoCompanyName =~ "AttackIQ" and '
-          'InitiatingProcessVersionInfoOriginalFileName =~ "freemoney.pdf.exe" and '
-          'MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" and SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" and '
-          'SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf" and '
-          'InitiatingProcessAccountName =~ "username"']
+            """
+            )
+        )
+        == [
+            "DeviceImageLoadEvents\n| "
+            'where InitiatingProcessId == 1 and InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notmalware.exe" and '
+            'FolderPath =~ "C:\\\\Temp\\\\definitelynotmalware.exe" and InitiatingProcessVersionInfoProductVersion == 1 '
+            'and InitiatingProcessVersionInfoFileDescription =~ "A Description" and '
+            'InitiatingProcessVersionInfoProductName =~ "A Product" and '
+            'InitiatingProcessVersionInfoCompanyName =~ "AttackIQ" and '
+            'InitiatingProcessVersionInfoOriginalFileName =~ "freemoney.pdf.exe" and '
+            'MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" and SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" and '
+            'SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf" and '
+            'InitiatingProcessAccountName =~ "username"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_file_event_field_mapping():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_file_event_field_mapping():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -363,17 +448,24 @@ def test_microsoft_365_defender_file_event_field_mapping():
                         sha256: 6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf
 
                     condition: sel
-            """)
-    ) == ['DeviceFileEvents\n| '
-          'where InitiatingProcessId == 1 and InitiatingProcessFolderPath =~ "C:\\\\Path\\\\To\\\\process.exe" and '
-          'FolderPath =~ "C:\\\\Temp\\\\passwords.txt" and RequestAccountName =~ "username" and '
-          'MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" and SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" and '
-          'SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf"']
+            """
+            )
+        )
+        == [
+            "DeviceFileEvents\n| "
+            'where InitiatingProcessId == 1 and InitiatingProcessFolderPath =~ "C:\\\\Path\\\\To\\\\process.exe" and '
+            'FolderPath =~ "C:\\\\Temp\\\\passwords.txt" and RequestAccountName =~ "username" and '
+            'MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" and SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" and '
+            'SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_registry_event_field_mapping():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_registry_event_field_mapping():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -388,17 +480,24 @@ def test_microsoft_365_defender_registry_event_field_mapping():
                         Details: attackiq
                         User: username
                     condition: sel
-            """)
-    ) == ['DeviceRegistryEvents\n| '
-          'where ActionType =~ "RegistryKeyCreated" and InitiatingProcessId == 1 and '
-          'InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\reg.exe" and '
-          'RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\ControlSet001\\\\services\\\\TrustedInstaller" and '
-          'RegistryValueData =~ "attackiq" and InitiatingProcessAccountName =~ "username"']
+            """
+            )
+        )
+        == [
+            "DeviceRegistryEvents\n| "
+            'where ActionType =~ "RegistryKeyCreated" and InitiatingProcessId == 1 and '
+            'InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\reg.exe" and '
+            'RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\ControlSet001\\\\services\\\\TrustedInstaller" and '
+            'RegistryValueData =~ "attackiq" and InitiatingProcessAccountName =~ "username"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_network_connection_field_mapping():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_network_connection_field_mapping():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -416,18 +515,25 @@ def test_microsoft_365_defender_network_connection_field_mapping():
                         DestinationPort: 50050
                         DestinationHostname: notanatp.net
                     condition: sel
-            """)
-    ) == ['DeviceNetworkEvents\n| '
-          'where InitiatingProcessId == 1 and '
-          'InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notcobaltstrike.exe" and '
-          'InitiatingProcessAccountName =~ "admin" and Protocol =~ "TCP" and LocalIP =~ "127.0.0.1" and '
-          'LocalPort == 12345 and RemoteIP =~ "1.2.3.4" and RemotePort == 50050 and '
-          'RemoteUrl =~ "notanatp.net"']
+            """
+            )
+        )
+        == [
+            "DeviceNetworkEvents\n| "
+            "where InitiatingProcessId == 1 and "
+            'InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notcobaltstrike.exe" and '
+            'InitiatingProcessAccountName =~ "admin" and Protocol =~ "TCP" and LocalIP =~ "127.0.0.1" and '
+            'LocalPort == 12345 and RemoteIP =~ "1.2.3.4" and RemotePort == 50050 and '
+            'RemoteUrl =~ "notanatp.net"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_network_connection_cidr():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_network_connection_cidr():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -438,14 +544,21 @@ def test_microsoft_365_defender_network_connection_cidr():
                         SourceIp|cidr: '10.10.0.0/24'
                         DestinationIp|cidr: '10.11.0.0/24'
                     condition: sel
-            """)
-    ) == ['DeviceNetworkEvents\n| '
-          'where ipv4_is_in_range(LocalIP, "10.10.0.0/24") and ipv4_is_in_range(RemoteIP, "10.11.0.0/24")']
+            """
+            )
+        )
+        == [
+            "DeviceNetworkEvents\n| "
+            'where ipv4_is_in_range(LocalIP, "10.10.0.0/24") and ipv4_is_in_range(RemoteIP, "10.11.0.0/24")'
+        ]
+    )
 
 
-def test_microsoft_365_defender_pipeline_registrykey_replacements():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_registrykey_replacements():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -465,18 +578,24 @@ def test_microsoft_365_defender_pipeline_registrykey_replacements():
                     RegistryKey: hkcr\\TestKey4
                     PreviousRegistryKey: hkcr\\TestKey4
                 condition: any of sel*
-        """)
-    ) == [
-               'DeviceRegistryEvents\n| where (RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\TestKey1" and '
-               'PreviousRegistryKey =~ "HKEY_LOCAL_MACHINE\\\\TestKey1") or '
-               '(RegistryKey =~ "HKEY_USERS\\\\TestKey2" and PreviousRegistryKey =~ "HKEY_USERS\\\\TestKey2") or '
-               '(RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet001\\\\TestKey3" and PreviousRegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet001\\\\TestKey3") or '
-               '(RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\CLASSES\\\\TestKey4" and PreviousRegistryKey =~ "HKEY_LOCAL_MACHINE\\\\CLASSES\\\\TestKey4")']
+        """
+            )
+        )
+        == [
+            'DeviceRegistryEvents\n| where (RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\TestKey1" and '
+            'PreviousRegistryKey =~ "HKEY_LOCAL_MACHINE\\\\TestKey1") or '
+            '(RegistryKey =~ "HKEY_USERS\\\\TestKey2" and PreviousRegistryKey =~ "HKEY_USERS\\\\TestKey2") or '
+            '(RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet001\\\\TestKey3" and PreviousRegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\CurrentControlSet001\\\\TestKey3") or '
+            '(RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\CLASSES\\\\TestKey4" and PreviousRegistryKey =~ "HKEY_LOCAL_MACHINE\\\\CLASSES\\\\TestKey4")'
+        ]
+    )
 
 
-def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_registry_actiontype_replacements():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -492,18 +611,24 @@ def test_microsoft_365_defender_pipeline_registry_actiontype_replacements():
                 sel4:
                     ActionType: RenameKey
                 condition: any of sel*
-        """)
-    ) == [
-               'DeviceRegistryEvents\n| '
-               'where ActionType =~ "RegistryKeyCreated" or '
-               '(ActionType in~ ("RegistryKeyDeleted", "RegistryValueDeleted")) or '
-               'ActionType =~ "RegistryValueSet" or '
-               '(ActionType in~ ("RegistryValueSet", "RegistryKeyCreated"))']
+        """
+            )
+        )
+        == [
+            "DeviceRegistryEvents\n| "
+            'where ActionType =~ "RegistryKeyCreated" or '
+            '(ActionType in~ ("RegistryKeyDeleted", "RegistryValueDeleted")) or '
+            'ActionType =~ "RegistryValueSet" or '
+            '(ActionType in~ ("RegistryValueSet", "RegistryKeyCreated"))'
+        ]
+    )
 
 
-def test_microsoft_365_defender_pipeline_valid_hash_in_list():
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_valid_hash_in_list():
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -516,16 +641,19 @@ def test_microsoft_365_defender_pipeline_valid_hash_in_list():
                             - IMPHASH=dfd6aa3f7b2b1035b76b718f1ddc689f
                             - IMPHASH=1a6cca4d5460b1710a12dea39e4a592c
                     condition: sel
-            """)
-        ) == [ 'DeviceProcessEvents\n| ' 
-               'where MD5 =~ "6444f8a34e99b8f7d9647de66aabe516"']
+            """
+            )
+        )
+        == ["DeviceProcessEvents\n| " 'where MD5 =~ "6444f8a34e99b8f7d9647de66aabe516"']
+    )
 
 
-
-def test_microsoft_365_defender_pipeline_generic_field():
+def test_microsoft_xdr_pipeline_generic_field():
     """Tests"""
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -536,16 +664,19 @@ def test_microsoft_365_defender_pipeline_generic_field():
                         CommandLine: whoami
                         ProcessId: 1  
                     condition: any of sel*
-            """)
-    ) == [
-               'DeviceFileEvents\n| '
-               'where InitiatingProcessCommandLine =~ "whoami" and InitiatingProcessId == 1']
+            """
+            )
+        )
+        == ["DeviceFileEvents\n| " 'where InitiatingProcessCommandLine =~ "whoami" and InitiatingProcessId == 1']
+    )
 
 
-def test_microsoft_365_defender_pipeline_parent_image():
+def test_microsoft_xdr_pipeline_parent_image():
     """Tests ParentImage for non-process-creation rules"""
-    assert KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: Test
                 status: test
                 logsource:
@@ -556,19 +687,25 @@ def test_microsoft_365_defender_pipeline_parent_image():
                         Image: C:\\Windows\\System32\\whoami.exe
                         ParentImage: C:\\Windows\\System32\\cmd.exe  
                     condition: any of sel*
-            """)
-    ) == [
-               'DeviceFileEvents\n| '
-               'where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\whoami.exe" and '
-               'InitiatingProcessParentFileName =~ "cmd.exe"']
+            """
+            )
+        )
+        == [
+            "DeviceFileEvents\n| "
+            'where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\whoami.exe" and '
+            'InitiatingProcessParentFileName =~ "cmd.exe"'
+        ]
+    )
 
 
-def test_microsoft_365_defender_pipeline_parent_image_false():
+def test_microsoft_xdr_pipeline_parent_image_false():
     """Tests passing transfer_parent_image=False to the pipeline"""
-    with pytest.raises(SigmaTransformationError,
-                       match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline(transform_parent_image=False)).convert(
-            SigmaCollection.from_yaml("""
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"
+    ):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline(transform_parent_image=False)).convert(
+            SigmaCollection.from_yaml(
+                """
                     title: Test
                     status: test
                     logsource:
@@ -579,15 +716,16 @@ def test_microsoft_365_defender_pipeline_parent_image_false():
                             Image: C:\\Windows\\System32\\whoami.exe
                             ParentImage: C:\\Windows\\System32\\cmd.exe  
                         condition: any of sel*
-                """)
+                """
+            )
         )
 
 
-def test_microsoft_365_defender_pipeline_unsupported_rule_type():
-    with pytest.raises(SigmaTransformationError,
-                       match="Rule category not yet supported by the Microsoft 365 Defender Sigma backend."):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_unsupported_rule_type():
+    with pytest.raises(SigmaTransformationError, match="Unable to determine table name for category"):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -597,15 +735,18 @@ def test_microsoft_365_defender_pipeline_unsupported_rule_type():
                     sel:
                         field: whatever
                     condition: sel
-            """)
+            """
+            )
         )
 
 
-def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
-    with pytest.raises(SigmaTransformationError,
-                       match="Invalid SigmaDetectionItem field name encountered.*DeviceProcessEvents"):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_unsupported_field_process_creation():
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered.*DeviceProcessEvents"
+    ):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -616,15 +757,18 @@ def test_microsoft_365_defender_pipeline_unsupported_field_process_creation():
                         CommandLine: whatever
                         InvalidField: forever
                     condition: sel
-            """)
+            """
+            )
         )
 
 
-def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
-    with pytest.raises(SigmaTransformationError,
-                       match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_unsupported_field_file_event():
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered.*DeviceFileEvents"
+    ):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -635,15 +779,18 @@ def test_microsoft_365_defender_pipeline_unsupported_field_file_event():
                         FileName: whatever
                         InvalidField: forever
                     condition: sel
-            """)
+            """
+            )
         )
 
 
-def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
-    with pytest.raises(SigmaTransformationError,
-                       match="Invalid SigmaDetectionItem field name encountered.*DeviceImageLoadEvents"):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_unsupported_field_image_load():
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered.*DeviceImageLoadEvents"
+    ):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -654,15 +801,18 @@ def test_microsoft_365_defender_pipeline_unsupported_field_image_load():
                         CommandLine: whatever
                         InvalidField: forever
                     condition: sel
-            """)
+            """
+            )
         )
 
 
-def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
-    with pytest.raises(SigmaTransformationError,
-                       match="Invalid SigmaDetectionItem field name encountered.*DeviceRegistryEvents"):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_unsupported_field_registry_event():
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered.*DeviceRegistryEvents"
+    ):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -673,15 +823,18 @@ def test_microsoft_365_defender_pipeline_unsupported_field_registry_event():
                         CommandLine: whatever
                         InvalidField: forever
                     condition: sel
-            """)
+            """
+            )
         )
 
 
-def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
-    with pytest.raises(SigmaTransformationError,
-                       match="Invalid SigmaDetectionItem field name encountered.*DeviceNetworkEvents"):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+def test_microsoft_xdr_pipeline_unsupported_field_network_connection():
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered.*DeviceNetworkEvents"
+    ):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -692,13 +845,16 @@ def test_microsoft_365_defender_pipeline_unsupported_field_network_connection():
                         CommandLine: whatever
                         InvalidField: forever
                     condition: sel
-            """)
+            """
+            )
         )
 
-def test_microsoft_365_defender_pipeline_no_valid_hashes():
+
+def test_microsoft_xdr_pipeline_no_valid_hashes():
     with pytest.raises(InvalidHashAlgorithmError):
-        KustoBackend(processing_pipeline=microsoft_365_defender_pipeline()).convert(
-            SigmaCollection.from_yaml("""
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
                 title: test
                 status: test
                 logsource:
@@ -711,6 +867,28 @@ def test_microsoft_365_defender_pipeline_no_valid_hashes():
                             - IMPHASH=dfd6aa3f7b2b1035b76b718f1ddc689f
                             - IMPHASH=1a6cca4d5460b1710a12dea39e4a592c
                     condition: sel
-            """)
+            """
+            )
         )
 
+
+def test_microsoft_xdr_pipeline_custom_table():
+    """Tests to ensure custom table names override category table name mappings and field name mappings"""
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline(query_table="DeviceFileEvents")).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test
+                status: test
+                logsource:
+                    category: process_creation
+                    product: windows
+                detection:
+                    sel:
+                        Image: actuallyafileevent.exe
+                    condition: sel
+            """
+            )
+        )
+        == ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe"']
+    )
