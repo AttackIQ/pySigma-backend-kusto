@@ -1,4 +1,7 @@
-from sigma.processing.transformations import DetectionItemFailureTransformation, SigmaTransformationError
+from sigma.processing.transformations import (
+    DetectionItemFailureTransformation,
+    SigmaTransformationError,
+)
 from sigma.rule import SigmaDetectionItem
 
 

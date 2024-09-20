@@ -6,6 +6,7 @@ from sigma.conditions import ConditionOR
 from sigma.processing.transformations import (
     DetectionItemTransformation,
     FieldMappingTransformation,
+    SigmaTransformationError,
     Transformation,
     ValueTransformation,
 )
@@ -13,7 +14,7 @@ from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaString
 from sigma.types import SigmaType
 
 from .errors import InvalidHashAlgorithmError
-from .mappings import CATEGORY_TO_TABLE_MAPPINGS
+from .mappings import CATEGORY_TO_TABLE_MAPPINGS, MICROSOFT_XDR_FIELD_MAPPINGS
 
 
 ## Custom DetectionItemTransformation to split domain and user, if applicable
@@ -165,83 +166,61 @@ class SetQueryTableStateTransformation(Transformation):
 
     val: Any = None
 
-    def apply(
-        self, pipeline: "sigma.processing.pipeline.ProcessingPipeline", rule: "sigma.rule.SigmaRule"  # noqa: F821
-    ) -> None:  # noqa: F821
+    def apply(self, pipeline: "ProcessingPipeline", rule: "SigmaRule") -> None:  # type: ignore  # noqa: F821
         super().apply(pipeline, rule)
-        if "query_table" in pipeline.state:
-            table_name = pipeline.state["query_table"]
+        if self.val:
+            table_name = self.val
         else:
-            category = rule.logsource.category
-            table_name = CATEGORY_TO_TABLE_MAPPINGS.get(category, self.val)
-        pipeline.state["query_table"] = pipeline.state.get("query_table", []) + [table_name]
-
-
-class MicrosoftXDRFieldMapping(FieldMappingTransformation):
-    def __init__(self):
-        super().__init__({})
-
-    def apply(self, pipeline, rule, detection_item=None, state=None):
-        if state and "query_table" in state:
-            table_name = state["query_table"]
-        else:
-            # Fallback to category-based mapping if query_table is not set
             category = rule.logsource.category
             table_name = CATEGORY_TO_TABLE_MAPPINGS.get(category)
 
         if table_name:
-            field = detection_item.field if detection_item else None
-            if field:
-                return self.get_field_mapping(table_name, field)
-        return None
+            if isinstance(table_name, list):
+                table_name = table_name[0]  # Use the first table if it's a list
+            pipeline.state["query_table"] = table_name
+        else:
+            raise SigmaTransformationError(
+                f"Unable to determine table name for category: {category}, category is not yet supported by the pipeline.  Please provide the 'query_table' parameter to the pipeline instead."
+            )
 
 
+@dataclass
 class DynamicFieldMappingTransformation(FieldMappingTransformation):
-    def __init__(self, field_mappings):
-        super().__init__({})
-        self.field_mappings = field_mappings
+    """
+    Dynamically sets the mapping dictionary based on the pipeline state or rule's category.
+    """
 
-    def apply_detection_item(self, detection_item: SigmaDetectionItem, pipeline: "ProcessingPipeline", rule: "SigmaRule") -> Optional[SigmaDetectionItem]:  # type: ignore  # noqa: F821
-        query_table = pipeline.state.get("query_table", [])[-1] if pipeline.state.get("query_table") else None
-        if not query_table:
-            # Fallback to category-based mapping if query_table is not set
-            category = rule.logsource.category
-            query_table = CATEGORY_TO_TABLE_MAPPINGS.get(category)
+    def set_dynamic_mapping(self, pipeline):
+        """
+        Set the mapping dynamically based on the pipeline state 'query_table' or the rule's logsource category.
+        """
 
-        if query_table:
-            table_mappings = self.field_mappings.table_mappings.get(query_table, {})
-            if detection_item.field in table_mappings:
-                detection_item.field = table_mappings[detection_item.field]
-            elif detection_item.field in self.field_mappings.generic_mappings:
-                detection_item.field = self.field_mappings.generic_mappings[detection_item.field]
+        # 1. If the pipeline's state has 'query_table', use that
+        if "query_table" in pipeline.state:
+            query_table = pipeline.state["query_table"]
+            self.mapping = MICROSOFT_XDR_FIELD_MAPPINGS.table_mappings.get(query_table, {})
 
-        return detection_item
-
-    def apply(self, pipeline: "ProcessingPipeline", rule: "SigmaRule"):  # type: ignore  # noqa: F821
-        if isinstance(rule, "SigmaRule"):
-            for detection in rule.detection.detections.values():
-                self.apply_detection(detection, pipeline, rule)
-
-    def apply_detection(self, detection: SigmaDetection, pipeline: "ProcessingPipeline", rule: "SigmaRule"):  # type: ignore  # noqa: F821
-        for i, detection_item in enumerate(detection.detection_items):
-            if isinstance(detection_item, SigmaDetection):  # recurse into nested detection items
-                self.apply_detection(detection_item, pipeline, rule)
-            else:
-                if self.processing_item is None or self.processing_item.match_detection_item(pipeline, detection_item):
-                    r = self.apply_detection_item(detection_item, pipeline, rule)
-                    if r is not None:
-                        detection.detection_items[i] = r
+    def apply(
+        self,
+        pipeline: "sigma.processing.pipeline.ProcessingPipeline",  # noqa: F821 # type: ignore
+        rule: Union["SigmaRule", "SigmaCorrelationRule"],  # noqa: F821 # type: ignore
+    ) -> None:
+        """Apply dynamic mapping before the field name transformations."""
+        self.set_dynamic_mapping(pipeline)  # Dynamically update the mapping
+        super().apply(pipeline, rule)  # Call parent method to continue the transformation process
 
 
 class GenericFieldMappingTransformation(FieldMappingTransformation):
-    def __init__(self, field_mappings):
-        super().__init__({})
-        self.field_mappings = field_mappings
+    """
+    Transformation for applying generic field mappings after table-specific mappings.
+    """
 
-    def apply_detection_item(self, detection_item: SigmaDetectionItem, pipeline: "ProcessingPipeline", rule: "SigmaRule") -> Optional[SigmaDetectionItem]:  # type: ignore  # noqa: F821
-        query_table = pipeline.state.get("query_table", [])[-1]  # Get the last added table name
-        table_mappings = self.field_mappings.table_mappings.get(query_table, {})
+    def __init__(self, generic_mappings):
+        super().__init__(generic_mappings)
 
-        if detection_item.field not in table_mappings:
-            detection_item.field = self.field_mappings.generic_mappings.get(detection_item.field, detection_item.field)
+    def apply_detection_item(
+        self, detection_item: SigmaDetectionItem
+    ) -> Optional[Union[SigmaDetectionItem, SigmaString]]:
+        if detection_item.field in self.mapping:
+            detection_item.field = self.mapping[detection_item.field]
         return detection_item

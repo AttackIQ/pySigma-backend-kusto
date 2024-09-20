@@ -1,9 +1,12 @@
 from typing import Optional
 
 from sigma.processing.conditions import (
+    DetectionItemProcessingItemAppliedCondition,
     ExcludeFieldCondition,
     IncludeFieldCondition,
     LogsourceCondition,
+    RuleProcessingItemAppliedCondition,
+    RuleProcessingStateCondition,
 )
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
 from sigma.processing.transformations import (
@@ -52,29 +55,24 @@ MICROSOFT_XDR_SCHEMA = create_xdr_schema()
 parent_image_field_mapping = {"ParentImage": "InitiatingProcessParentFileName"}
 
 
-## ProcessingItems to set state key 'query_table' to use in backend
-## i.e. $QueryTable$ | $rest_of_query$
-query_table_proc_items = [
-    ProcessingItem(
-        identifier=f"microsoft_xdr_set_query_table_{category}",
-        transformation=SetQueryTableStateTransformation(table_name),
-        rule_conditions=[CATEGORY_TO_CONDITIONS_MAPPINGS[category]],
-    )
-    for category, table_name in CATEGORY_TO_TABLE_MAPPINGS.items()
-]
-
 ## Fieldmappings
 fieldmappings_proc_item = ProcessingItem(
-    identifier="microsoft_xdr_fieldmappings",
-    transformation=DynamicFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS),
+    identifier="microsoft_xdr_table_fieldmappings",
+    transformation=DynamicFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS.table_mappings),
 )
 
 ## Generic Fielp Mappings, keep this last
-## Exclude any fields already mapped. For example, if process_creation events ProcessId has already
-## been mapped to the same field name (ProcessId), we don't to remap it to InitiatingProcessId
+## Exclude any fields already mapped, e.g. if a table mapping has been applied.
+# This will fix the case where ProcessId is usually mapped to InitiatingProcessId, EXCEPT for the DeviceProcessEvent table where it stays as ProcessId.
+# So we can map ProcessId to ProcessId in the DeviceProcessEvents table mapping, and prevent the generic mapping to InitiatingProcessId from being applied
+# by adding a detection item condition that the table field mappings have been applied
+
 generic_field_mappings_proc_item = ProcessingItem(
-    identifier="microsoft_xdr_fieldmappings_generic",
-    transformation=GenericFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS),
+    identifier="microsoft_xdr_generic_fieldmappings",
+    transformation=GenericFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings),
+    detection_item_conditions=[DetectionItemProcessingItemAppliedCondition(f"microsoft_xdr_table_fieldmappings")],
+    detection_item_condition_linking=any,
+    detection_item_condition_negation=True,
 )
 
 
@@ -174,25 +172,54 @@ rule_error_proc_items = [
     )
 ]
 
-field_error_proc_items = [
+
+def get_valid_fields(table_name):
+    return (
+        list(MICROSOFT_XDR_SCHEMA.tables[table_name].fields.keys())
+        + list(MICROSOFT_XDR_FIELD_MAPPINGS.table_mappings.get(table_name, {}).keys())
+        + list(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings.keys())
+        + ["Hashes"]
+    )
+
+
+field_error_proc_items = []
+
+for table_name in MICROSOFT_XDR_SCHEMA.tables.keys():
+    valid_fields = get_valid_fields(table_name)
+
+    field_error_proc_items.append(
+        ProcessingItem(
+            identifier=f"microsoft_xdr_unsupported_fields_{table_name}",
+            transformation=InvalidFieldTransformation(
+                f"Please use valid fields for the {table_name} table, or the following fields that have keymappings in this "
+                f"pipeline:\n{', '.join(sorted(set(valid_fields)))}"
+            ),
+            field_name_conditions=[ExcludeFieldCondition(fields=valid_fields)],
+            rule_conditions=[
+                RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),
+                RuleProcessingStateCondition("query_table", table_name),
+            ],
+            rule_condition_linking=all,
+        )
+    )
+
+# Add a catch-all error for custom table names
+field_error_proc_items.append(
     ProcessingItem(
-        identifier=f"microsoft_xdr_unsupported_fields_{category}",
+        identifier="microsoft_xdr_unsupported_fields_custom",
         transformation=InvalidFieldTransformation(
-            f"Please use valid fields for the {table_name} table, or the following fields that have keymappings in this "
-            f"pipeline:\n"
-            f"{', '.join(sorted(set(MICROSOFT_XDR_FIELD_MAPPINGS.table_mappings.get(table_name, {}).keys()).union(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings.keys()).union({'Hashes'})))}"
+            "Invalid field name for the custom table. Please ensure you're using valid fields for your custom table."
         ),
         field_name_conditions=[
-            ExcludeFieldCondition(
-                fields=MICROSOFT_XDR_SCHEMA.get_valid_fields(table_name)
-                + list(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings.keys())
-                + ["Hashes"]
-            )
+            ExcludeFieldCondition(fields=list(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings.keys()) + ["Hashes"])
         ],
-        rule_conditions=[CATEGORY_TO_CONDITIONS_MAPPINGS[category]],
+        rule_conditions=[
+            RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),
+            RuleProcessingStateCondition("query_table", None),
+        ],
+        rule_condition_linking=all,
     )
-    for category, table_name in CATEGORY_TO_TABLE_MAPPINGS.items()
-]
+)
 
 
 def microsoft_365_defender_pipeline(
@@ -222,7 +249,10 @@ def microsoft_xdr_pipeline(
     """
 
     pipeline_items = [
-        *query_table_proc_items,
+        ProcessingItem(
+            identifier="microsoft_xdr_set_query_table",
+            transformation=SetQueryTableStateTransformation(query_table),
+        ),
         fieldmappings_proc_item,
         generic_field_mappings_proc_item,
         *replacement_proc_items,
@@ -238,5 +268,5 @@ def microsoft_xdr_pipeline(
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
-        finalizers=[Microsoft365DefenderTableFinalizer(table_names=query_table)],
+        finalizers=[Microsoft365DefenderTableFinalizer()],
     )
