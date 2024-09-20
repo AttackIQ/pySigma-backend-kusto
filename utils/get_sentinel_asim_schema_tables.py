@@ -1,7 +1,3 @@
-import subprocess
-
-subprocess.run(["which", "python3"]) 
-
 import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
@@ -92,12 +88,23 @@ def extract_table_name(soup: BeautifulSoup) -> Optional[str]:
     :param soup: BeautifulSoup object of the schema page.
     :return: The extracted table name or None if not found.
     """
-    try:
-        return soup.find("code", class_="lang-kql").text.strip().split()[0]
-    except AttributeError:
+    def extract_from_code():
+        code_element = soup.find("code", class_="lang-kql")
+        if not code_element:
+            return None
+        table_name = code_element.text.strip().split()[0]
+        return extract_table_name_from_string(table_name)
+
+    def extract_from_text():
         whole_text = soup.get_text()
         match = re.search(r"(?i)im(\w+)<?vendor>?<?Product>?", whole_text)
         return f"im{match.group(1)}" if match else None
+
+    def extract_table_name_from_string(text):
+        match = re.search(r"(?i)(im|_im_)(\w+)", text)
+        return f"{match.group(1)}{match.group(2)}" if match else None
+
+    return extract_from_code() or extract_from_text()
 
 
 def extract_field_data(soup: BeautifulSoup) -> List[Dict[str, str]]:
@@ -182,3 +189,4 @@ if __name__ == "__main__":
     schema_data, common_field_data = process_asim_schemas()
     write_schema(OUTPUT_FILE, schema_data, common_field_data)
     print(f"Schema written to {OUTPUT_FILE}")
+    
