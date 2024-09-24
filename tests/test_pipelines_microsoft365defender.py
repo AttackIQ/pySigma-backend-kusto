@@ -4,7 +4,7 @@ from sigma.backends.kusto import KustoBackend
 from sigma.collection import SigmaCollection
 from sigma.exceptions import SigmaTransformationError
 from sigma.pipelines.microsoft365defender import microsoft_xdr_pipeline
-from sigma.pipelines.microsoft365defender.errors import InvalidHashAlgorithmError
+from sigma.pipelines.kusto_common.errors import InvalidHashAlgorithmError
 
 
 def test_microsoft_xdr_username_transformation():
