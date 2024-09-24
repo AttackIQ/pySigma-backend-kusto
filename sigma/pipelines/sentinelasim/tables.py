@@ -1,5 +1,5 @@
 # This file is auto-generated. Do not edit manually.
-# Last updated: 2024-09-20 20:21:49 UTC
+# Last updated: 2024-09-23 19:27:00 UTC
 
 SENTINEL_ASIM_TABLES = {
     "imAuditEvent": {
@@ -673,5 +673,48 @@ SENTINEL_ASIM_TABLES = {
 }
 SENTINEL_ASIM_COMMON_FIELDS = {
     "COMMON": {
+        "EventMessage": {"data_type": "String", "description": 'A general message or description, either included in or generated from the record.', "class": "Optional"},
+        "EventCount": {"data_type": "Integer", "description": 'The number of events described by the record. This value is used when the source supports aggregation, and a single record might represent multiple events. For other sources, set to 1.', "class": "Mandatory"},
+        "EventStartTime": {"data_type": "Date/time", "description": 'The time in which the event started. If the source supports aggregation and the record represents multiple events, the time that the first event was generated. If not provided by the source record, this field aliases the TimeGenerated field.', "class": "Mandatory"},
+        "EventEndTime": {"data_type": "Date/time", "description": 'The time in which the event ended. If the source supports aggregation and the record represents multiple events, the time that the last event was generated. If not provided by the source record, this field aliases the TimeGenerated field.', "class": "Mandatory"},
+        "EventType": {"data_type": "Enumerated", "description": 'Describes the operation reported by the record. Each schema documents the list of values valid for this field. The original, source specific, value is stored in the EventOriginalType field.', "class": "Mandatory"},
+        "EventSubType": {"data_type": "Enumerated", "description": 'Describes a subdivision of the operation reported in the EventType field. Each schema documents the list of values valid for this field. The original, source specific, value is stored in the EventOriginalSubType field.', "class": "Optional"},
+        "EventResult": {"data_type": "Enumerated", "description": 'One of the following values: Success, Partial, Failure, NA (Not Applicable). The value might be provided in the source record by using different terms, which should be normalized to these values. Alternatively, the source might provide only the EventResultDetails field, which should be analyzed to derive the EventResult value.Example: Success', "class": "Mandatory"},
+        "EventResultDetails": {"data_type": "Enumerated", "description": 'Reason or details for the result reported in the EventResult field. Each schema documents the list of values valid for this field. The original, source specific, value is stored in the EventOriginalResultDetails field.Example: NXDOMAIN', "class": "Recommended"},
+        "EventUid": {"data_type": "String", "description": 'The unique ID of the record, as assigned by Microsoft Sentinel. This field is typically mapped to the _ItemId Log Analytics field.', "class": "Recommended"},
+        "EventOriginalUid": {"data_type": "String", "description": 'A unique ID of the original record, if provided by the source.Example: 69f37748-ddcd-4331-bf0f-b137f1ea83b', "class": "Optional"},
+        "EventOriginalType": {"data_type": "String", "description": 'The original event type or ID, if provided by the source. For example, this field is used to store the original Windows event ID. This value is used to derive EventType, which should have only one of the values documented for each schema.Example: 4624', "class": "Optional"},
+        "EventOriginalSubType": {"data_type": "String", "description": 'The original event subtype or ID, if provided by the source. For example, this field is used to store the original Windows logon type. This value is used to derive EventSubType, which should have only one of the values documented for each schema.Example: 2', "class": "Optional"},
+        "EventOriginalResultDetails": {"data_type": "String", "description": 'The original result details provided by the source. This value is used to derive EventResultDetails, which should have only one of the values documented for each schema.', "class": "Optional"},
+        "EventSeverity": {"data_type": "Enumerated", "description": 'The severity of the event. Valid values are: Informational, Low, Medium, or High.', "class": "Recommended"},
+        "EventOriginalSeverity": {"data_type": "String", "description": 'The original severity as provided by the reporting device. This value is used to derive EventSeverity.', "class": "Optional"},
+        "EventProduct": {"data_type": "String", "description": 'The product generating the event. The value should be one of the values listed in Vendors and Products.Example: Sysmon', "class": "Mandatory"},
+        "EventProductVersion": {"data_type": "String", "description": 'The version of the product generating the event. Example: 12.1', "class": "Optional"},
+        "EventVendor": {"data_type": "String", "description": 'The vendor of the product generating the event. The value should be one of the values listed in Vendors and Products.Example: Microsoft', "class": "Mandatory"},
+        "EventSchema": {"data_type": "String", "description": 'The schema the event is normalized to. Each schema documents its schema name.', "class": "Mandatory"},
+        "EventSchemaVersion": {"data_type": "String", "description": 'The version of the schema. Each schema documents its current version.', "class": "Mandatory"},
+        "EventReportUrl": {"data_type": "String", "description": 'A URL provided in the event for a resource that provides more information about the event.', "class": "Optional"},
+        "EventOwner": {"data_type": "String", "description": 'The owner of the event, which is usually the department or subsidiary in which it was generated.', "class": "Optional"},
+        "Dvc": {"data_type": "String", "description": 'A unique identifier of the device on which the event occurred or which reported the event, depending on the schema. This field might alias the DvcFQDN, DvcId, DvcHostname, or DvcIpAddr fields. For cloud sources, for which there is no apparent device, use the same value as the Event Product field.', "class": "Alias"},
+        "DvcIpAddr": {"data_type": "IP address", "description": 'The IP address of the device on which the event occurred or which reported the event, depending on the schema. Example: 45.21.42.12', "class": "Recommended"},
+        "DvcHostname": {"data_type": "Hostname", "description": 'The hostname of the device on which the event occurred or which reported the event, depending on the schema. Example: ContosoDc', "class": "Recommended"},
+        "DvcDomain": {"data_type": "String", "description": 'The domain of the device on which the event occurred or which reported the event, depending on the schema.Example: Contoso', "class": "Recommended"},
+        "DvcDomainType": {"data_type": "Enumerated", "description": 'The type of  DvcDomain. For a list of allowed values and further information, refer to DomainType.Note: This field is required if the DvcDomain field is used.', "class": "Conditional"},
+        "DvcFQDN": {"data_type": "String", "description": 'The hostname of the device on which the event occurred or which reported the event, depending on the schema.  Example: Contoso\\DESKTOP-1282V4DNote: This field supports both traditional FQDN format and Windows domain\\hostname format. The  DvcDomainType field reflects the format used.', "class": "Optional"},
+        "DvcDescription": {"data_type": "String", "description": 'A descriptive text associated with the device. For example: Primary Domain Controller.', "class": "Optional"},
+        "DvcId": {"data_type": "String", "description": 'The unique ID of the device on which the event occurred or which reported the event, depending on the schema. Example: 41502da5-21b7-48ec-81c9-baeea8d7d669', "class": "Optional"},
+        "DvcIdType": {"data_type": "Enumerated", "description": 'The type of DvcId. For a list of allowed values and further information, refer to DvcIdType.- MDEidIf multiple IDs are available, use the first one from the list, and store the others by using the field names DvcAzureResourceId and DvcMDEid, respectively.Note: This field is required if the DvcId field is used.', "class": "Conditional"},
+        "DvcMacAddr": {"data_type": "MAC", "description": 'The MAC address of the device on which the event occurred or which reported the event.  Example: 00:1B:44:11:3A:B7', "class": "Optional"},
+        "DvcZone": {"data_type": "String", "description": 'The network on which the event occurred or which reported the event, depending on the schema. The zone is defined by the reporting device.Example: Dmz', "class": "Optional"},
+        "DvcOs": {"data_type": "String", "description": 'The operating system running on the device on which the event occurred or which reported the event.    Example: Windows', "class": "Optional"},
+        "DvcOsVersion": {"data_type": "String", "description": 'The version of the operating system on the device on which the event occurred or which reported the event. Example: 10', "class": "Optional"},
+        "DvcAction": {"data_type": "String", "description": 'For reporting security systems, the action taken by the system, if applicable. Example: Blocked', "class": "Recommended"},
+        "DvcOriginalAction": {"data_type": "String", "description": 'The original DvcAction as provided by the reporting device.', "class": "Optional"},
+        "DvcInterface": {"data_type": "String", "description": 'The network interface on which data was captured. This field is  typically relevant to network related activity, which is captured by an intermediate or tap device.', "class": "Optional"},
+        "DvcScopeId": {"data_type": "String", "description": 'The cloud platform scope ID the device belongs to. DvcScopeId map to a subscription ID on Azure and to an account ID on AWS.', "class": "Optional"},
+        "DvcScope": {"data_type": "String", "description": 'The cloud platform scope the device belongs to. DvcScope map to a subscription ID on Azure and to an account ID on AWS.', "class": "Optional"},
+        "AdditionalFields": {"data_type": "Dynamic", "description": 'If your source provides additional information worth preserving, either keep it with the original field names or create the dynamic AdditionalFields field, and add to it the extra information as key/value pairs.', "class": "Optional"},
+        "ASimMatchingIpAddr": {"data_type": "String", "description": 'When a parser uses the ipaddr_has_any_prefix filtering parameters, this field  is set with the one of the values SrcIpAddr, DstIpAddr, or Both to reflect the matching fields or fields.', "class": "Recommended"},
+        "ASimMatchingHostname": {"data_type": "String", "description": 'When a parser uses the hostname_has_any filtering parameters, this field  is set with the one of the values SrcHostname, DstHostname, or Both to reflect the matching fields or fields.', "class": "Recommended"},
     },
 }
