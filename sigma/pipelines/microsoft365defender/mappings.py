@@ -12,8 +12,7 @@ from sigma.pipelines.common import (
     logsource_windows_registry_event,
     logsource_windows_registry_set,
 )
-
-from .schema import MicrosoftXDRFieldMappings
+from sigma.pipelines.kusto_common.schema import FieldMappings
 
 ## Rule Categories -> Query Table Names
 CATEGORY_TO_TABLE_MAPPINGS = {
@@ -46,6 +45,11 @@ CATEGORY_TO_CONDITIONS_MAPPINGS = {
     "registry_set": logsource_windows_registry_set(),
     "network_connection": logsource_windows_network_connection(),
 }
+
+
+class MicrosoftXDRFieldMappings(FieldMappings):
+    pass
+
 
 MICROSOFT_XDR_FIELD_MAPPINGS = MicrosoftXDRFieldMappings(
     table_mappings={

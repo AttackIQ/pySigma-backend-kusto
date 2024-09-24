@@ -16,40 +16,29 @@ from sigma.processing.transformations import (
     RuleFailureTransformation,
 )
 
-from .errors import InvalidFieldTransformation
-from .finalization import Microsoft365DefenderTableFinalizer
+from ..kusto_common.errors import InvalidFieldTransformation
+from ..kusto_common.finalization import QueryTableFinalizer
+from ..kusto_common.schema import create_schema
+from ..kusto_common.transformations import (
+    DynamicFieldMappingTransformation,
+    GenericFieldMappingTransformation,
+    HashesValuesTransformation,
+    RegistryActionTypeValueTransformation,
+    SetQueryTableStateTransformation,
+)
 from .mappings import (
     CATEGORY_TO_CONDITIONS_MAPPINGS,
     CATEGORY_TO_TABLE_MAPPINGS,
     MICROSOFT_XDR_FIELD_MAPPINGS,
 )
-from .schema import FieldInfo, MicrosoftXDRSchema, TableSchema
+from .schema import MicrosoftXDRSchema
 from .tables import MICROSOFT_XDR_TABLES
 from .transformations import (
-    DynamicFieldMappingTransformation,
-    GenericFieldMappingTransformation,
-    HashesValuesTransformation,
     ParentImageValueTransformation,
-    RegistryActionTypeValueTransformation,
-    SetQueryTableStateTransformation,
     SplitDomainUserTransformation,
 )
 
-
-def create_xdr_schema() -> MicrosoftXDRSchema:
-    schema = MicrosoftXDRSchema()
-    for table_name, fields in MICROSOFT_XDR_TABLES.items():
-        table_schema = TableSchema()
-        for field_name, field_info in fields.items():
-            table_schema.fields[field_name] = FieldInfo(
-                data_type=field_info["data_type"], description=field_info["description"]
-            )
-        schema.tables[table_name] = table_schema
-    return schema
-
-
-MICROSOFT_XDR_SCHEMA = create_xdr_schema()
-
+MICROSOFT_XDR_SCHEMA = create_schema(MicrosoftXDRSchema, MICROSOFT_XDR_TABLES)
 
 # Mapping from ParentImage to InitiatingProcessParentFileName. Must be used alongside of ParentImageValueTransformation
 parent_image_field_mapping = {"ParentImage": "InitiatingProcessParentFileName"}
@@ -58,7 +47,7 @@ parent_image_field_mapping = {"ParentImage": "InitiatingProcessParentFileName"}
 ## Fieldmappings
 fieldmappings_proc_item = ProcessingItem(
     identifier="microsoft_xdr_table_fieldmappings",
-    transformation=DynamicFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS.table_mappings),
+    transformation=DynamicFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS),
 )
 
 ## Generic Fielp Mappings, keep this last
@@ -69,8 +58,8 @@ fieldmappings_proc_item = ProcessingItem(
 
 generic_field_mappings_proc_item = ProcessingItem(
     identifier="microsoft_xdr_generic_fieldmappings",
-    transformation=GenericFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings),
-    detection_item_conditions=[DetectionItemProcessingItemAppliedCondition(f"microsoft_xdr_table_fieldmappings")],
+    transformation=GenericFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS),
+    detection_item_conditions=[DetectionItemProcessingItemAppliedCondition("microsoft_xdr_table_fieldmappings")],
     detection_item_condition_linking=any,
     detection_item_condition_negation=True,
 )
@@ -164,9 +153,7 @@ rule_error_proc_items = [
     ProcessingItem(
         identifier="microsoft_xdr_unsupported_rule_category",
         rule_condition_linking=any,
-        transformation=RuleFailureTransformation(
-            "Rule category not yet supported by the Microsoft 365 Defender Sigma backend."
-        ),
+        transformation=RuleFailureTransformation("Rule category not yet supported by the Microsoft XDR pipeline."),
         rule_condition_negation=True,
         rule_conditions=[x for x in CATEGORY_TO_CONDITIONS_MAPPINGS.values()],
     )
@@ -251,7 +238,7 @@ def microsoft_xdr_pipeline(
     pipeline_items = [
         ProcessingItem(
             identifier="microsoft_xdr_set_query_table",
-            transformation=SetQueryTableStateTransformation(query_table),
+            transformation=SetQueryTableStateTransformation(query_table, CATEGORY_TO_TABLE_MAPPINGS),
         ),
         fieldmappings_proc_item,
         generic_field_mappings_proc_item,
@@ -268,5 +255,5 @@ def microsoft_xdr_pipeline(
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
-        finalizers=[Microsoft365DefenderTableFinalizer()],
+        finalizers=[QueryTableFinalizer()],
     )
