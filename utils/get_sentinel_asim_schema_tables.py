@@ -113,21 +113,20 @@ def extract_field_data(soup: BeautifulSoup) -> List[Dict[str, str]]:
     :param soup: BeautifulSoup object of the schema page.
     :return: A list of dictionaries with the field name and type.
     """
-    schema_details_section = soup.find(id="schema-details")
+    #schema_details_section = soup.find(id="schema-details")
     field_data = {}
 
-    if schema_details_section:
-        # Loop through all tables in the section and its subsections
-        tables = soup.find_all("table")
-        for table in tables:
-            # Each table has columns: Field, Class, Type, Description
-            headers = [th.text.strip() for th in table.find_all("th")]
-            if "Field" in headers and "Class" in headers:
-                # Parse each row of the table
-                for row in table.find_all("tr")[1:]:  # Skip header row
-                    cols = [td.text.strip() for td in row.find_all("td")]
-                    if len(cols) == 4:  # Ensure we have all four columns
-                        field_data[cols[0]] = {"class": cols[1], "data_type": cols[2], "description": cols[3]}
+    # Loop through all tables in the section and its subsections
+    tables = soup.find_all("table")
+    for table in tables:
+        # Each table has columns: Field, Class, Type, Description
+        headers = [th.text.strip() for th in table.find_all("th")]
+        if "Field" in headers and "Class" in headers:
+            # Parse each row of the table
+            for row in table.find_all("tr")[1:]:  # Skip header row
+                cols = [td.text.strip() for td in row.find_all("td")]
+                if len(cols) == 4:  # Ensure we have all four columns
+                    field_data[cols[0]] = {"class": cols[1], "data_type": cols[2], "description": cols[3]}
     return field_data
 
 
