@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from typing import Dict, List
 
 import requests
-import yaml
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,7 +16,8 @@ HEADERS = {"Accept": "application/vnd.github.v3+json"}
 if GITHUB_API_KEY:
     HEADERS["Authorization"] = f"token {GITHUB_API_KEY}"
 
-OUTPUT_FILE = "sigma/pipelines/azuremonitor/tables_new.py"
+OUTPUT_FILE = "sigma/pipelines/azuremonitor/tables.py"
+
 
 def fetch_content(file_name: str = None) -> str:
     """Fetch the file content from GitHub and decode it."""
@@ -45,25 +45,22 @@ def extract_table_urls(json_content: dict) -> List[str]:
 
 def extract_table_schema(content: str, table_name: str = None) -> dict:
     """Extract table schema from markdown content."""
-    match = re.search(r"\|\s*Column\s*\|\s*Type\s*\|\s*Description\s*\|\n\|[-\s|]*\n((?:\|.*\|$\n?)+)", content, re.MULTILINE)
+    match = re.search(
+        r"\|\s*Column\s*\|\s*Type\s*\|\s*Description\s*\|\n\|[-\s|]*\n((?:\|.*\|$\n?)+)", content, re.MULTILINE
+    )
     if not match:
-        match = re.search(r'\|Column\|Type\|Description\|[\r\n]+\|---\|---\|---\|[\n\r]+(.*?)(?=\n##|\Z)', content, re.DOTALL)
+        match = re.search(
+            r"\|Column\|Type\|Description\|[\r\n]+\|---\|---\|---\|[\n\r]+(.*?)(?=\n##|\Z)", content, re.DOTALL
+        )
     if not match:
         print(f"Field table not found in {table_name}")
         return {}
-    
-    table_content = match.group(1)
-    rows = table_content.strip().split('\n')
-
 
     schema_data = {}
-    for row in match.group(1).strip().split('\n'):
+    for row in match.group(1).strip().split("\n"):
         columns = [col.strip() for col in row.strip().strip("|").split("|")]
         if len(columns) >= 2:
-            schema_data[columns[0]] = {
-                "data_type": columns[1],
-                "description": columns[2] if len(columns) > 2 else ""
-            }
+            schema_data[columns[0]] = {"data_type": columns[1], "description": columns[2] if len(columns) > 2 else ""}
     if not schema_data:
         print(f"Table schema could not be parsed from {table_name}")
     return schema_data
@@ -102,14 +99,15 @@ def write_schema(output_file: str, schema_tables: Dict[str, dict]):
             f.write("    },\n")
         f.write("}\n")
 
+
 def get_all_includes_tables() -> dict:
     tables_list = fetch_content("includes")
     if not tables_list:
         return {}
     table_urls = ["includes/" + url for url in extract_table_urls(tables_list) if url.endswith(".md")]
     return {table: schema for url in table_urls for table, schema in process_table(url).items() if schema}
-    
-    
+
+
 def get_all_tables() -> dict:
     """Retrieve all tables from the TOC and process them."""
     tables_list = fetch_content()
@@ -122,8 +120,6 @@ def get_all_tables() -> dict:
 if __name__ == "__main__":
     if not GITHUB_API_KEY:
         print("Warning: GITHUB_API_KEY not set. You may encounter rate limiting.")
-    #data = process_table("azurediagnostics.md")
-    #print(data)
     tables = get_all_tables()
     tables_includes = get_all_includes_tables()
     tables.update(tables_includes)
