@@ -1,6 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from sigma.conditions import ConditionOR
 from sigma.processing.transformations import (
@@ -67,13 +67,20 @@ class GenericFieldMappingTransformation(FieldMappingTransformation):
         return detection_item
 
 
-## Custom DetectionItemTransformation to regex hash algos/values in Hashes field, if applicable
-class HashesValuesTransformation(DetectionItemTransformation):
-    """Custom DetectionItemTransformation to take a list of values in the 'Hashes' field, which are expected to be
-    'algo:hash_value', and create new SigmaDetectionItems for each hash type, where the values is a list of
-    SigmaString hashes. If the hash type is not part of the value, it will be inferred based on length.
+class BaseHashesValuesTransformation(DetectionItemTransformation):
+    """
+    Base class for transforming the Hashes field to get rid of the hash algorithm prefix in each value and create new detection items for each hash type.
+    """
 
-    Use with field_name_condition for Hashes field"""
+    def __init__(self, valid_hash_algos: List[str], field_prefix: str = None, drop_algo_prefix: bool = False):
+        """
+        :param valid_hash_algos: A list of valid hash algorithms that are supported by the table.
+        :param field_prefix: The prefix to use for the new detection items.
+        :param drop_algo_prefix: Whether to drop the algorithm prefix in the new field name, e.g. "FileHashSHA256" -> "FileHash".
+        """
+        self.valid_hash_algos = valid_hash_algos
+        self.field_prefix = field_prefix or ""
+        self.drop_algo_prefix = drop_algo_prefix
 
     def apply_detection_item(
         self, detection_item: SigmaDetectionItem
@@ -90,7 +97,7 @@ class HashesValuesTransformation(DetectionItemTransformation):
             if len(hash_value) == 2:
                 hash_algo = (
                     hash_value[0].lstrip("*").upper()
-                    if hash_value[0].lstrip("*").upper() in ["MD5", "SHA1", "SHA256"]
+                    if hash_value[0].lstrip("*").upper() in self.valid_hash_algos
                     else ""
                 )
                 if hash_algo:
@@ -107,13 +114,20 @@ class HashesValuesTransformation(DetectionItemTransformation):
                 elif len(hash_value) == 64:  # SHA256
                     hash_algo = "SHA256"
                     no_valid_hash_algo = False
+                elif len(hash_value) == 128:  # SHA512
+                    hash_algo = "SHA512"
+                    no_valid_hash_algo = False
                 else:  # Invalid algo, no fieldname for keyword search
                     hash_algo = ""
-            algo_dict[hash_algo].append(hash_value)
+
+            field_name = self.field_prefix
+            if not self.drop_algo_prefix:
+                field_name += hash_algo
+            algo_dict[field_name].append(hash_value)
         if no_valid_hash_algo:
             raise InvalidHashAlgorithmError(
-                "No valid hash algo found in Hashes field.  Advanced Hunting Queries do not support the "
-                "IMPHASH field. Ensure the detection item has at least one MD5, SHA1, or SHA265 hash field/value"
+                "No valid hash algo found in Hashes field. Please use one of the following: "
+                + ", ".join(self.valid_hash_algos)
             )
         for k, v in algo_dict.items():
             if k:  # Filter out invalid hash algo types
