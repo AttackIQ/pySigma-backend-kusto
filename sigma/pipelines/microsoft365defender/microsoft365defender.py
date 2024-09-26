@@ -22,12 +22,10 @@ from ..kusto_common.schema import create_schema
 from ..kusto_common.transformations import (
     DynamicFieldMappingTransformation,
     GenericFieldMappingTransformation,
-    HashesValuesTransformation,
     RegistryActionTypeValueTransformation,
     SetQueryTableStateTransformation,
 )
 from .mappings import (
-    CATEGORY_TO_CONDITIONS_MAPPINGS,
     CATEGORY_TO_TABLE_MAPPINGS,
     MICROSOFT_XDR_FIELD_MAPPINGS,
 )
@@ -36,6 +34,7 @@ from .tables import MICROSOFT_XDR_TABLES
 from .transformations import (
     ParentImageValueTransformation,
     SplitDomainUserTransformation,
+    XDRHashesValuesTransformation,
 )
 
 MICROSOFT_XDR_SCHEMA = create_schema(MicrosoftXDRSchema, MICROSOFT_XDR_TABLES)
@@ -50,7 +49,7 @@ fieldmappings_proc_item = ProcessingItem(
     transformation=DynamicFieldMappingTransformation(MICROSOFT_XDR_FIELD_MAPPINGS),
 )
 
-## Generic Fielp Mappings, keep this last
+## Generic Field Mappings, keep this last
 ## Exclude any fields already mapped, e.g. if a table mapping has been applied.
 # This will fix the case where ProcessId is usually mapped to InitiatingProcessId, EXCEPT for the DeviceProcessEvent table where it stays as ProcessId.
 # So we can map ProcessId to ProcessId in the DeviceProcessEvents table mapping, and prevent the generic mapping to InitiatingProcessId from being applied
@@ -108,7 +107,7 @@ replacement_proc_items = [
     ),
     ProcessingItem(
         identifier="microsoft_xdr_hashes_field_values",
-        transformation=HashesValuesTransformation(),
+        transformation=XDRHashesValuesTransformation(),
         field_name_conditions=[IncludeFieldCondition(["Hashes"])],
     ),
     # Processing item to essentially ignore initiated field
@@ -147,15 +146,20 @@ parent_image_proc_items = [
     ),
 ]
 
-## Exceptions/Errors ProcessingItems
+# Exceptions/Errors ProcessingItems
+# Catch-all for when the query table is not set, meaning the rule could not be mapped to a table or the table name was not set
 rule_error_proc_items = [
-    # Category Not Supported
+    # Category Not Supported or Query Table Not Set
     ProcessingItem(
-        identifier="microsoft_xdr_unsupported_rule_category",
-        rule_condition_linking=any,
-        transformation=RuleFailureTransformation("Rule category not yet supported by the Microsoft XDR pipeline."),
-        rule_condition_negation=True,
-        rule_conditions=[x for x in CATEGORY_TO_CONDITIONS_MAPPINGS.values()],
+        identifier="microsoft_xdr_unsupported_rule_category_or_missing_query_table",
+        transformation=RuleFailureTransformation(
+            "Rule category not yet supported by the Microsoft XDR pipeline or query_table is not set."
+        ),
+        rule_conditions=[
+            RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),
+            RuleProcessingStateCondition("query_table", None),
+        ],
+        rule_condition_linking=all,
     )
 ]
 
@@ -251,7 +255,7 @@ def microsoft_xdr_pipeline(
         pipeline_items[4:4] = parent_image_proc_items
 
     return ProcessingPipeline(
-        name="Generic Log Sources to Windows 365 Defender Transformation",
+        name="Generic Log Sources to Windows XDR tables and fields",
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),

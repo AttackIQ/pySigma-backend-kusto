@@ -7,6 +7,8 @@ from sigma.processing.transformations import (
 from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaString
 from sigma.types import SigmaType
 
+from ..kusto_common.transformations import BaseHashesValuesTransformation
+
 
 ## Custom DetectionItemTransformation to split domain and user, if applicable
 class SplitDomainUserTransformation(DetectionItemTransformation):
@@ -72,3 +74,12 @@ class ParentImageValueTransformation(ValueTransformation):
     def apply_value(self, field: str, val: SigmaType) -> Optional[Union[SigmaType, Iterable[SigmaType]]]:
         parent_process_name = str(val.to_plain().split("\\")[-1].split("/")[-1])
         return SigmaString(parent_process_name)
+
+
+class XDRHashesValuesTransformation(BaseHashesValuesTransformation):
+    """
+    Transforms the Hashes field in XDR Tables to create fields for each hash algorithm.
+    """
+
+    def __init__(self):
+        super().__init__(valid_hash_algos=["MD5", "SHA1", "SHA256"], field_prefix="")
