@@ -892,3 +892,44 @@ def test_microsoft_xdr_pipeline_custom_table():
         )
         == ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe"']
     )
+    
+
+def test_microsoft_xdr_pipeline_custom_table_invalid_category():
+    """Tests to ensure custom table names override category table name mappings and field name mappings"""
+    assert (
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline(query_table="DeviceFileEvents")).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test
+                status: test
+                logsource:
+                    product: windows
+                detection:
+                    sel:
+                        Image: actuallyafileevent.exe
+                    condition: sel
+            """
+            )
+        )
+        == ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe"']
+    )
+    
+
+def test_microsoft_xdr_pipeline_custom_table_invalid_category_no_table():
+    """Tests to ensure custom table names override category table name mappings and field name mappings"""
+    with pytest.raises(SigmaTransformationError, match="Unable to determine table name for category"):
+        KustoBackend(processing_pipeline=microsoft_xdr_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test
+                status: test
+                logsource:
+                    product: windows
+                detection:
+                    sel:
+                        Image: actuallyafileevent.exe
+                    condition: sel
+            """
+            )
+        )
+    

@@ -1,8 +1,10 @@
 import pytest
-from sigma.collection import SigmaCollection
+
 from sigma.backends.kusto import KustoBackend
-from sigma.pipelines.sentinelasim import sentinel_asim_pipeline
+from sigma.collection import SigmaCollection
 from sigma.exceptions import SigmaTransformationError
+from sigma.pipelines.sentinelasim import sentinel_asim_pipeline
+
 
 def test_sentinel_asim_process_creation_field_mapping():
     assert (
@@ -24,8 +26,11 @@ def test_sentinel_asim_process_creation_field_mapping():
                 """
             )
         )
-        == ["imProcessCreate\n| where TargetProcessName =~ \"C:\\\\Windows\\\\System32\\\\cmd.exe\" and TargetProcessCommandLine =~ \"whoami\" and TargetUsername =~ \"SYSTEM\" and TargetProcessId == 1234"]
+        == [
+            'imProcessCreate\n| where TargetProcessName =~ "C:\\\\Windows\\\\System32\\\\cmd.exe" and TargetProcessCommandLine =~ "whoami" and TargetUsername =~ "SYSTEM" and TargetProcessId == 1234'
+        ]
     )
+
 
 def test_sentinel_asim_network_connection_field_mapping():
     assert (
@@ -46,8 +51,9 @@ def test_sentinel_asim_network_connection_field_mapping():
                 """
             )
         )
-        == ["imNetworkSession\n| where DstIpAddr =~ \"8.8.8.8\" and DstPortNumber == 53 and NetworkProtocol =~ \"udp\""]
+        == ['imNetworkSession\n| where DstIpAddr =~ "8.8.8.8" and DstPortNumber == 53 and NetworkProtocol =~ "udp"']
     )
+
 
 def test_sentinel_asim_registry_event_field_mapping():
     assert (
@@ -67,8 +73,11 @@ def test_sentinel_asim_registry_event_field_mapping():
                 """
             )
         )
-        == ["imRegistry\n| where RegistryKey =~ \"HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\" and EventType =~ \"RegistryValueSet\""]
+        == [
+            'imRegistry\n| where RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run" and EventType =~ "RegistryValueSet"'
+        ]
     )
+
 
 def test_sentinel_asim_custom_table():
     assert (
@@ -87,11 +96,14 @@ def test_sentinel_asim_custom_table():
                 """
             )
         )
-        == ["imFileEvent\n| where TargetFilePath =~ \"malware.exe\""]
+        == ['imFileEvent\n| where TargetFilePath =~ "malware.exe"']
     )
 
+
 def test_sentinel_asim_unsupported_field():
-    with pytest.raises(SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered: UnsupportedField"):
+    with pytest.raises(
+        SigmaTransformationError, match="Invalid SigmaDetectionItem field name encountered: UnsupportedField"
+    ):
         KustoBackend(processing_pipeline=sentinel_asim_pipeline()).convert(
             SigmaCollection.from_yaml(
                 """
@@ -107,6 +119,7 @@ def test_sentinel_asim_unsupported_field():
                 """
             )
         )
+
 
 def test_sentinel_asim_file_event():
     assert (
@@ -125,5 +138,100 @@ def test_sentinel_asim_file_event():
                 """
             )
         )
-        == ["imFileEvent\n| where TargetFilePath =~ \"C:\\\\Windows\\\\explorer.exe\""]
+        == ['imFileEvent\n| where TargetFilePath =~ "C:\\\\Windows\\\\explorer.exe"']
+    )
+
+
+def test_sentinel_asim_pipeline_custom_table_invalid_category():
+    assert (
+        KustoBackend(processing_pipeline=sentinel_asim_pipeline(query_table="imFileEvent")).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test Custom Table
+                status: test
+                logsource:
+                    category: blah
+                    product: windows
+                detection:
+                    sel:
+                        Image: malware.exe
+                    condition: sel
+                """
+            )
+        )
+        == ['imFileEvent\n| where TargetFilePath =~ "malware.exe"']
+    )
+
+
+def test_sentinel_asim_processcreate_hashes_field_values():
+    assert (
+        KustoBackend(processing_pipeline=sentinel_asim_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test ProcessCreate Hashes Field Values
+                status: test
+                logsource:
+                    category: process_creation
+                    product: windows
+                detection:
+                    sel:
+                        Hashes:
+                            - md5=1234567890abcdef1234567890abcdef
+                            - sha1=1234567890abcdef1234567890abcdef12345678
+                            - sha256=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+                            - imphash=1234567890abcdef1234567890abcdef
+                            - sha512=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+                    condition: sel
+                """
+            )
+        )
+        == [
+            'imProcessCreate\n| where TargetProcessMD5 =~ "1234567890abcdef1234567890abcdef" or TargetProcessSHA1 =~ "1234567890abcdef1234567890abcdef12345678" or TargetProcessSHA256 =~ "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" or TargetProcessIMPHASH =~ "1234567890abcdef1234567890abcdef" or TargetProcessSHA512 =~ "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"'
+        ]
+    )
+
+def test_sentinel_asim_fileevent_hashes_field_values():
+    assert (
+        KustoBackend(processing_pipeline=sentinel_asim_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test FileEvent Hashes Field Values
+                status: test
+                logsource:
+                    category: file_event
+                    product: windows
+                detection:
+                    sel:
+                        Hashes:
+                            - md5=1234567890abcdef1234567890abcdef
+                            - sha1=1234567890abcdef1234567890abcdef12345678
+                            - sha256=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+                    condition: sel
+                """
+            )
+        )
+        == ['imFileEvent\n| where TargetFileMD5 =~ "1234567890abcdef1234567890abcdef" or TargetFileSHA1 =~ "1234567890abcdef1234567890abcdef12345678" or TargetFileSHA256 =~ "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"']
+    )
+
+def test_sentinel_asim_webrequest_hashes_field_values():
+    assert (
+        KustoBackend(processing_pipeline=sentinel_asim_pipeline()).convert(
+            SigmaCollection.from_yaml(
+                """
+                title: Test WebRequest Hashes Field Values
+                status: test
+                logsource:
+                    category: proxy
+                    product: windows
+                detection:
+                    sel:
+                        Hashes:
+                            - md5=1234567890abcdef1234567890abcdef
+                            - sha1=1234567890abcdef1234567890abcdef12345678
+                            - sha256=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+                    condition: sel
+                """
+            )
+        )
+        == ['imWebSession\n| where FileMD5 =~ "1234567890abcdef1234567890abcdef" or FileSHA1 =~ "1234567890abcdef1234567890abcdef12345678" or FileSHA256 =~ "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"']
     )
