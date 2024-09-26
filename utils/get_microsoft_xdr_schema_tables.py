@@ -17,7 +17,7 @@ HEADERS = {"Accept": "application/vnd.github.v3+json"}
 if GITHUB_API_KEY:
     HEADERS["Authorization"] = f"token {GITHUB_API_KEY}"
 
-OUTPUT_FILE = "sigma/pipelines/microsoft365defender/tables.py"
+OUTPUT_FILE = "sigma/pipelines/microsoftxdr/tables.py"
 
 
 def fetch_content(file_name: str) -> str:
