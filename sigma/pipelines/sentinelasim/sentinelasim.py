@@ -21,17 +21,20 @@ from ..kusto_common.schema import create_schema
 from ..kusto_common.transformations import (
     DynamicFieldMappingTransformation,
     GenericFieldMappingTransformation,
-    HashesValuesTransformation,
     RegistryActionTypeValueTransformation,
     SetQueryTableStateTransformation,
 )
 from .mappings import (
-    CATEGORY_TO_CONDITIONS_MAPPINGS,
     CATEGORY_TO_TABLE_MAPPINGS,
     SENTINEL_ASIM_FIELD_MAPPINGS,
 )
 from .schema import SentinelASIMSchema
 from .tables import SENTINEL_ASIM_TABLES
+from .transformations import (
+    FileEventHashesValuesTransformation,
+    ProcessCreateHashesValuesTransformation,
+    WebSessionHashesValuesTransformation,
+)
 
 SENTINEL_ASIM_SCHEMA = create_schema(SentinelASIMSchema, SENTINEL_ASIM_TABLES)
 
@@ -92,10 +95,24 @@ replacement_proc_items = [
         transformation=RegistryActionTypeValueTransformation(),
         field_name_conditions=[IncludeFieldCondition(["EventType"])],
     ),
+    # Processing item to transform the Hashes field in the SecurityEvent table to get rid of the hash algorithm prefix in each value
     ProcessingItem(
-        identifier="sentinel_asim_hashes_field_values",
-        transformation=HashesValuesTransformation(),
+        identifier="sentinel_asim_processcreate_hashes_field_values",
+        transformation=ProcessCreateHashesValuesTransformation(),
         field_name_conditions=[IncludeFieldCondition(["Hashes"])],
+        rule_conditions=[RuleProcessingStateCondition("query_table", "imProcessCreate")],
+    ),
+    ProcessingItem(
+        identifier="sentinel_asim_fileevent_hashes_field_values",
+        transformation=FileEventHashesValuesTransformation(),
+        field_name_conditions=[IncludeFieldCondition(["Hashes"])],
+        rule_conditions=[RuleProcessingStateCondition("query_table", "imFileEvent")],
+    ),
+    ProcessingItem(
+        identifier="sentinel_asim_webrequest_hashes_field_values",
+        transformation=WebSessionHashesValuesTransformation(),
+        field_name_conditions=[IncludeFieldCondition(["Hashes"])],
+        rule_conditions=[RuleProcessingStateCondition("query_table", "imWebSession")],
     ),
     # Processing item to essentially ignore initiated field
     ProcessingItem(
@@ -106,15 +123,20 @@ replacement_proc_items = [
     ),
 ]
 
-## Exceptions/Errors ProcessingItems
+# Exceptions/Errors ProcessingItems
+# Catch-all for when the query table is not set, meaning the rule could not be mapped to a table or the table name was not set
 rule_error_proc_items = [
-    # Category Not Supported
+    # Category Not Supported or Query Table Not Set
     ProcessingItem(
-        identifier="sentinel_asim_unsupported_rule_category",
-        rule_condition_linking=any,
-        transformation=RuleFailureTransformation("Rule category not yet supported by the Sentinel ASIM pipeline."),
-        rule_condition_negation=True,
-        rule_conditions=[x for x in CATEGORY_TO_CONDITIONS_MAPPINGS.values()],
+        identifier="sentinel_asim_unsupported_rule_category_or_missing_query_table",
+        transformation=RuleFailureTransformation(
+            "Rule category not yet supported by the Sentinel ASIM pipeline or query_table is not set."
+        ),
+        rule_conditions=[
+            RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),
+            RuleProcessingStateCondition("query_table", None),
+        ],
+        rule_condition_linking=all,
     )
 ]
 
@@ -193,7 +215,7 @@ def sentinel_asim_pipeline(
     ]
 
     return ProcessingPipeline(
-        name="Generic Log Sources to Windows 365 Defender Transformation",
+        name="Generic Log Sources to Sentinel ASIM tables and fields",
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),

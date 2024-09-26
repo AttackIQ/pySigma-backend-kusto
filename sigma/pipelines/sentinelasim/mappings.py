@@ -35,6 +35,8 @@ CATEGORY_TO_TABLE_MAPPINGS = {
     "registry_event": next((table for table in table_names if "registry" in table.lower()), "imRegistry"),
     "registry_set": next((table for table in table_names if "registry" in table.lower()), "imRegistry"),
     "network_connection": next((table for table in table_names if "network" in table.lower()), "imNetworkSession"),
+    "proxy": next((table for table in table_names if "web" in table.lower()), "imWebSession"),
+    "webserver": next((table for table in table_names if "web" in table.lower()), "imWebSession"),
 }
 
 ## Rule Categories -> RuleConditions
@@ -169,7 +171,6 @@ SENTINEL_ASIM_FIELD_MAPPINGS = SentinelASIMFieldMappings(
             "LogonId": "ActorSessionId",
             "TargetObject": "TargetFilePath",
             "Details": "TargetFilePath",
-            "Hashes": ["TargetFileMD5", "TargetFileSHA1", "TargetFileSHA256", "TargetFileSHA512"],
             "SubjectUserName": "ActorUsername",
             "ObjectName": "TargetFilePath",
             "OldFilePath": "SrcFilePath",
@@ -259,7 +260,6 @@ SENTINEL_ASIM_FIELD_MAPPINGS = SentinelASIMFieldMappings(
             "ParentProcessGuid": ["ParentProcessGuid", "ActingProcessGuid"],
             "ParentUser": "ActorUsername",
             "IntegrityLevel": "TargetProcessIntegrityLevel",
-            "Hashes": ["TargetProcessMD5", "TargetProcessSHA1", "TargetProcessSHA256", "TargetProcessSHA512"],
             "ParentProcessName": "ParentProcessName",
             "CurrentDirectory": "TargetProcessCurrentDirectory",
             "OriginalFileName": ["TargetProcessFileOriginalName", "TargetProcessFilename"],
