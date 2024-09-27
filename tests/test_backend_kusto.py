@@ -10,7 +10,7 @@ def microsoft365defender_backend():
     return KustoBackend(processing_pipeline=microsoft_365_defender_pipeline())
 
 
-def test_microsoft365defender_and_expression(microsoft365defender_backend: KustoBackend):
+def test_kusto_and_expression(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -27,7 +27,7 @@ def test_microsoft365defender_and_expression(microsoft365defender_backend: Kusto
     ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" and AccountName =~ "valueB"']
 
 
-def test_microsoft365defender_or_expression(microsoft365defender_backend: KustoBackend):
+def test_kusto_or_expression(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -45,7 +45,7 @@ def test_microsoft365defender_or_expression(microsoft365defender_backend: KustoB
     ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" or AccountName =~ "valueB"']
 
 
-def test_microsoft365defender_and_or_expression(microsoft365defender_backend: KustoBackend):
+def test_kusto_and_or_expression(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -67,7 +67,7 @@ def test_microsoft365defender_and_or_expression(microsoft365defender_backend: Ku
           '(ProcessId in~ ("valueB1", "valueB2"))']
 
 
-def test_microsoft365defender_or_and_expression(microsoft365defender_backend: KustoBackend):
+def test_kusto_or_and_expression(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -88,7 +88,7 @@ def test_microsoft365defender_or_and_expression(microsoft365defender_backend: Ku
           '(ProcessCommandLine =~ "valueA2" and ProcessId =~ "valueB2")']
 
 
-def test_microsoft365defender_in_expression(microsoft365defender_backend: KustoBackend):
+def test_kusto_in_expression(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -108,7 +108,7 @@ def test_microsoft365defender_in_expression(microsoft365defender_backend: KustoB
           'ProcessCommandLine startswith "valueC"']
 
 
-def test_microsoft365defender_regex_query(microsoft365defender_backend: KustoBackend):
+def test_kusto_regex_query(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -125,7 +125,7 @@ def test_microsoft365defender_regex_query(microsoft365defender_backend: KustoBac
     ) == ['DeviceProcessEvents\n| where ProcessCommandLine matches regex "foo.*bar" and ProcessId =~ "foo"']
 
 
-def test_microsoft365defender_cidr_query(microsoft365defender_backend: KustoBackend):
+def test_kusto_cidr_query(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -141,7 +141,7 @@ def test_microsoft365defender_cidr_query(microsoft365defender_backend: KustoBack
     ) == ['DeviceNetworkEvents\n| where ipv4_is_in_range(LocalIP, "192.168.0.0/16")']
 
 
-def test_microsoft365defender_negation_basic(microsoft365defender_backend: KustoBackend):
+def test_kusto_negation_basic(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml(r"""
             title: Test
@@ -165,7 +165,7 @@ def test_microsoft365defender_negation_basic(microsoft365defender_backend: Kusto
           '(not(ProcessCommandLine =~ "notthis"))']
 
 
-def test_microsoft365defender_negation_contains(microsoft365defender_backend: KustoBackend):
+def test_kusto_negation_contains(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml(r"""
             title: Test
@@ -189,7 +189,7 @@ def test_microsoft365defender_negation_contains(microsoft365defender_backend: Ku
           '(not(ProcessCommandLine contains "notthis"))']
 
 
-def test_microsoft365defender_grouping(microsoft365defender_backend: KustoBackend):
+def test_kusto_grouping(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml(r"""
             title: Net connection logic test
@@ -212,7 +212,7 @@ def test_microsoft365defender_grouping(microsoft365defender_backend: KustoBacken
           '"pastebin.com" or RemoteUrl contains "anothersite.com")']
 
 
-def test_microsoft365defender_escape_cmdline_slash(microsoft365defender_backend: KustoBackend):
+def test_kusto_escape_cmdline_slash(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml(r"""
             title: Delete All Scheduled Tasks
@@ -247,7 +247,7 @@ def test_microsoft365defender_escape_cmdline_slash(microsoft365defender_backend:
           'ProcessCommandLine contains " /f")']
 
 
-def test_microsoft365defender_cmdline_filters(microsoft365defender_backend: KustoBackend):
+def test_kusto_cmdline_filters(microsoft365defender_backend: KustoBackend):
     assert microsoft365defender_backend.convert(
         SigmaCollection.from_yaml(
             r"""
@@ -295,3 +295,4 @@ def test_microsoft365defender_cmdline_filters(microsoft365defender_backend: Kust
           'action=allow \\"program=" and ProcessCommandLine contains ":\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
           'enable=yes profile=Any"))))'
           ]
+    
