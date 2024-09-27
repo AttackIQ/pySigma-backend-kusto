@@ -1,19 +1,22 @@
-# 🛡️ pySigma Kusto Query Language (KQL) Backend
+# pySigma Kusto Query Language (KQL) Backend
 
 ![Tests](https://github.com/AttackIQ/pySigma-backend-microsoft365defender/actions/workflows/test.yml/badge.svg)
 ![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/slincoln-aiq/9c0879725c7f94387801390bbb0ac8d6/raw/slincoln-aiq-pySigma-backend-microsoft365defender.json)
 ![Status](https://img.shields.io/badge/Status-pre--release-orange)
 ![PyPI version](https://badge.fury.io/py/pysigma-backend-kusto.svg)
 ![Python versions](https://img.shields.io/pypi/pyversions/pysigma-backend-kusto.svg)
+![pySigma version](https://img.shields.io/badge/pySigma-%3E%3D0.10.0-blue)
 ![License](https://img.shields.io/github/license/AttackIQ/pySigma-backend-microsoft365defender.svg)
 
-- [🛡️ pySigma Kusto Query Language (KQL) Backend](#️-pysigma-kusto-query-language-kql-backend)
+## Contents
+
+- [pySigma Kusto Query Language (KQL) Backend](#pysigma-kusto-query-language-kql-backend)
   - [📖 Overview](#-overview)
   - [🚀 Quick Start](#-quick-start)
   - [📘 Usage](#-usage)
   - [🛠️ Advanced Features](#️-advanced-features)
-  - [🔧 Processing Pipelines](#-processing-pipelines)
-  - [🛠️ Custom Transformations](#️-custom-transformations)
+  - [🔄 Processing Pipelines](#-processing-pipelines)
+  - [🧪 Custom Transformations](#-custom-transformations)
   - [❓Frequently Asked Questions](#frequently-asked-questions)
   - [🤝 Contributing](#-contributing)
   - [📄 License](#-license)
@@ -32,7 +35,7 @@ The **pySigma Kusto Backend** transforms Sigma Rules into queries using [Kusto Q
 
 - **Backend**: `sigma.backends.kusto` with `KustoBackend` class
 - **Pipelines**: Provides `microsoft_xdr_pipeline`, `sentinelasim_pipeline`, and `azure_monitor_pipeline` for query tables and field renames
-- **Output**: Query strings for Advanced Hunting Queries in Kusto Query Language (KQL).
+- **Output**: Query strings in Kusto Query Language (KQL)
 
 ### 🧑‍💻 Maintainer
 
@@ -46,7 +49,7 @@ The **pySigma Kusto Backend** transforms Sigma Rules into queries using [Kusto Q
    pip install pysigma-backend-kusto
    ```
 
-   **Note:** This package requires `pySigma` version 0.10.0 or higher.
+   > **Note:** This package requires `pySigma` version 0.10.0 or higher.
 
 2. Convert a Sigma rule to MIcrosoft XDR KQL query using sigma-cli:
 
@@ -182,7 +185,7 @@ from sigma.pipelines.microsoftxdr import microsoft_xdr_pipeline
 my_pipeline = microsoft_xdr_pipeline(query_table="DeviceProcessEvents")
 ```
 
-## 🔧 Processing Pipelines
+## 🔄 Processing Pipelines
 
 This project includes three main processing pipelines, each designed for a specific Microsoft product:
 
@@ -220,7 +223,7 @@ Rules are supported if either:
 
 Specific pipelines may support additional categories. Check each pipeline's `mappings.py` file for details.
 
-## 🛠️ Custom Transformations
+## 🧪 Custom Transformations
 
 This package includes several custom `ProcessingPipeline` `Transformation` classes:
 
