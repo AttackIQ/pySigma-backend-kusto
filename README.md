@@ -11,6 +11,7 @@
 ## Contents
 
 - [pySigma Kusto Query Language (KQL) Backend](#pysigma-kusto-query-language-kql-backend)
+  - [Contents](#contents)
   - [📖 Overview](#-overview)
   - [🚀 Quick Start](#-quick-start)
   - [📘 Usage](#-usage)
@@ -251,12 +252,11 @@ This package includes several custom `ProcessingPipeline` `Transformation` class
 8. **SetQueryTableStateTransformation**
    - Manages the `query_table` state based on rule category or custom settings
 
-### 📊 Custom Finalizer
+### 📊 Custom Postprocessing Item
 
-1. **QueryTableFinalizer**
+1. **PrependQueryTablePostprocessingItem**
 
-- Adds table name as prefix to each query
-- Keeps queries separate for fine-grained control
+- Adds table name as prefix to each query in a SigmaCollection, or single query in a SigmaRule
 
 ## ❓Frequently Asked Questions
 
