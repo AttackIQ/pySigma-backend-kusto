@@ -11,7 +11,6 @@
 ## Contents
 
 - [pySigma Kusto Query Language (KQL) Backend](#pysigma-kusto-query-language-kql-backend)
-  - [Contents](#contents)
   - [📖 Overview](#-overview)
   - [🚀 Quick Start](#-quick-start)
   - [📘 Usage](#-usage)
