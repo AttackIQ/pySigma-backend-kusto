@@ -17,7 +17,7 @@ from sigma.processing.transformations import (
 )
 
 from ..kusto_common.errors import InvalidFieldTransformation
-from ..kusto_common.finalization import QueryTableFinalizer
+from ..kusto_common.postprocessing import PrependQueryTablePostprocessingItem
 from ..kusto_common.schema import create_schema
 from ..kusto_common.transformations import (
     DynamicFieldMappingTransformation,
@@ -253,5 +253,5 @@ def microsoft_xdr_pipeline(
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
-        finalizers=[QueryTableFinalizer()],
+        postprocessing_items=[PrependQueryTablePostprocessingItem],
     )
