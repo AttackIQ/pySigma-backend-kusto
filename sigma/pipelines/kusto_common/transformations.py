@@ -155,6 +155,8 @@ class SetQueryTableStateTransformation(Transformation):
         super().apply(pipeline, rule)
         if self.val:
             table_name = self.val
+        elif pipeline.state.get("query_table"):  # If query_table is provided in another pipeline, like via YAML in sigma-cli
+            table_name = pipeline.state.get("query_table")
         else:
             category = rule.logsource.category
             table_name = self.category_to_table_mappings.get(category)
