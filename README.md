@@ -61,24 +61,30 @@ The **pySigma Kusto Backend** transforms Sigma Rules into queries using [Kusto Q
 
    ```python
    from sigma.rule import SigmaRule
+
    from sigma.backends.kusto import KustoBackend
+   from sigma.pipelines.microsoftxdr import microsoft_xdr_pipeline
 
    # Load your Sigma rule
-   rule = SigmaRule.from_yaml("""
-     title: Mimikatz CommandLine
-     status: test
-     logsource:
-         category: process_creation
-         product: windows
-     detection:
-         sel:
-             CommandLine|contains: mimikatz.exe
-         condition: sel
-   """)
+   rule = SigmaRule.from_yaml(
+      """
+      title: Mimikatz CommandLine
+      status: test
+      logsource:
+            category: process_creation
+            product: windows
+      detection:
+            sel:
+               CommandLine|contains: mimikatz.exe
+            condition: sel
+      """
+   )
 
    # Convert the rule
-   backend = KustoBackend()
+   xdr_pipeline = microsoft_xdr_pipeline()
+   backend = KustoBackend(processing_pipeline=xdr_pipeline)
    print(backend.convert_rule(rule)[0])
+
    ```
 
 ## 📘 Usage
