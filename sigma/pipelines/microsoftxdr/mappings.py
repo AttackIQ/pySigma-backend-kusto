@@ -77,6 +77,7 @@ MICROSOFT_XDR_FIELD_MAPPINGS = MicrosoftXDRFieldMappings(
             "ParentImage": "InitiatingProcessFolderPath",
             "ParentCommandLine": "InitiatingProcessCommandLine",
             "ParentUser": "InitiatingProcessAccountName",
+            "GrandParentImage": "InitiatingProcessParentFileName",
         },
         "DeviceImageLoadEvents": {
             # 'ProcessGuid': ?,
