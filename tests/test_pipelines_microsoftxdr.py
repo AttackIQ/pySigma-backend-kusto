@@ -665,7 +665,7 @@ def test_microsoft_xdr_pipeline_unsupported_rule_type(xdr_backend):
                 field: whatever
             condition: sel
     """
-    with pytest.raises(SigmaTransformationError, match="Unable to determine table name for category"):
+    with pytest.raises(SigmaTransformationError, match="Unable to determine table name from rule. "):
         xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule))
 
 
@@ -824,3 +824,95 @@ def test_microsoft_xdr_pipeline_custom_table_invalid_category(xdr_backend):
         )
         == expected_result
     )
+
+
+def test_microsoft_xdr_pipeline_SigmaNumbers(xdr_backend):
+    yaml_rule = r"""
+title: Azure AD Health Monitoring Agent Registry Keys Access
+id: ff151c33-45fa-475d-af4f-c2f93571f4fe
+status: test
+description: |
+    This detection uses Windows security events to detect suspicious access attempts to the registry key of Azure AD Health monitoring agent.
+    This detection requires an access control entry (ACE) on the system access control list (SACL) of the following securable object HKLM\SOFTWARE\Microsoft\Microsoft Online\Reporting\MonitoringAgent.
+references:
+    - https://o365blog.com/post/hybridhealthagent/
+    - https://github.com/OTRF/Set-AuditRule/blob/c3dec5443414231714d850565d364ca73475ade5/rules/registry/aad_connect_health_monitoring_agent.yml
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research), MSTIC
+date: 2021-08-26
+modified: 2022-10-09
+tags:
+    - attack.discovery
+    - attack.t1012
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID:
+            - 4656
+            - 4663
+        ObjectType: 'Key'
+        ObjectName: '\REGISTRY\MACHINE\SOFTWARE\Microsoft\Microsoft Online\Reporting\MonitoringAgent'
+    filter:
+        ProcessName|contains:
+            - 'Microsoft.Identity.Health.Adfs.DiagnosticsAgent.exe'
+            - 'Microsoft.Identity.Health.Adfs.InsightsService.exe'
+            - 'Microsoft.Identity.Health.Adfs.MonitoringAgent.Startup.exe'
+            - 'Microsoft.Identity.Health.Adfs.PshSurrogate.exe'
+            - 'Microsoft.Identity.Health.Common.Clients.ResourceMonitor.exe'
+    condition: selection and not filter
+falsepositives:
+    - Unknown
+level: medium
+"""
+
+    expected_result = [
+        r"""DeviceRegistryEvents
+| where RegistryKey =~ "\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Microsoft Online\\Reporting\\MonitoringAgent" and (not((InitiatingProcessFolderPath contains "Microsoft.Identity.Health.Adfs.DiagnosticsAgent.exe" or InitiatingProcessFolderPath contains "Microsoft.Identity.Health.Adfs.InsightsService.exe" or InitiatingProcessFolderPath contains "Microsoft.Identity.Health.Adfs.MonitoringAgent.Startup.exe" or InitiatingProcessFolderPath contains "Microsoft.Identity.Health.Adfs.PshSurrogate.exe" or InitiatingProcessFolderPath contains "Microsoft.Identity.Health.Common.Clients.ResourceMonitor.exe")))"""
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_eventid_mapping(xdr_backend):
+    """Test that EventID is used to determine table when category is missing"""
+    yaml_rule = """
+        title: Test EventID Mapping
+        status: test
+        logsource:
+            product: windows
+        detection:
+            sel:
+                EventID: 1
+                Image: C:\\Windows\\System32\\cmd.exe
+            condition: sel
+    """
+    # EventID 1 should map to process_creation category -> DeviceProcessEvents table
+    expected_result = ['DeviceProcessEvents\n| where FolderPath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"']
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_category_precedence(xdr_backend):
+    """Test that category takes precedence over EventID when both are present"""
+    yaml_rule = """
+        title: Test Category Precedence
+        status: test
+        logsource:
+            category: file_event
+            product: windows
+        detection:
+            sel:
+                EventID: 1  # Process creation EventID, but should use file_event category
+                Image: C:\\Windows\\System32\\cmd.exe
+            condition: sel
+    """
+    # Should use DeviceFileEvents table based on category, not DeviceProcessEvents from EventID
+    expected_result = [
+        'DeviceFileEvents\n| where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result

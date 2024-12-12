@@ -1,8 +1,8 @@
 import pytest
-from sigma.collection import SigmaCollection
-from sigma.backends.kusto import KustoBackend
-from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
+from sigma.backends.kusto import KustoBackend
+from sigma.collection import SigmaCollection
+from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
 
 @pytest.fixture
@@ -10,9 +10,16 @@ def microsoft365defender_backend():
     return KustoBackend(processing_pipeline=microsoft_365_defender_pipeline())
 
 
+@pytest.fixture
+def kusto_backend_no_pipeline():
+    return KustoBackend()
+
+
 def test_kusto_and_expression(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -23,13 +30,18 @@ def test_kusto_and_expression(microsoft365defender_backend: KustoBackend):
                     CommandLine: valueA
                     User: valueB
                 condition: sel
-        """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" and AccountName =~ "valueB"']
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" and AccountName =~ "valueB"']
+    )
 
 
 def test_kusto_or_expression(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -41,13 +53,18 @@ def test_kusto_or_expression(microsoft365defender_backend: KustoBackend):
                 sel2:
                     User: valueB
                 condition: 1 of sel*
-        """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" or AccountName =~ "valueB"']
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where ProcessCommandLine =~ "valueA" or AccountName =~ "valueB"']
+    )
 
 
 def test_kusto_and_or_expression(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -62,14 +79,21 @@ def test_kusto_and_or_expression(microsoft365defender_backend: KustoBackend):
                         - valueB1
                         - valueB2
                 condition: sel
-        """)
-    ) == ['DeviceProcessEvents\n| where (ProcessCommandLine in~ ("valueA1", "valueA2")) and '
-          '(ProcessId in~ ("valueB1", "valueB2"))']
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where (ProcessCommandLine in~ ("valueA1", "valueA2")) and '
+            '(ProcessId in~ ("valueB1", "valueB2"))'
+        ]
+    )
 
 
 def test_kusto_or_and_expression(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -83,14 +107,21 @@ def test_kusto_or_and_expression(microsoft365defender_backend: KustoBackend):
                     CommandLine: valueA2
                     ProcessId: valueB2
                 condition: 1 of sel*
-        """)
-    ) == ['DeviceProcessEvents\n| where (ProcessCommandLine =~ "valueA1" and ProcessId =~ "valueB1") or '
-          '(ProcessCommandLine =~ "valueA2" and ProcessId =~ "valueB2")']
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where (ProcessCommandLine =~ "valueA1" and ProcessId =~ "valueB1") or '
+            '(ProcessCommandLine =~ "valueA2" and ProcessId =~ "valueB2")'
+        ]
+    )
 
 
 def test_kusto_in_expression(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -103,14 +134,21 @@ def test_kusto_in_expression(microsoft365defender_backend: KustoBackend):
                         - valueB
                         - valueC*
                 condition: sel
-        """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine in~ ("valueA", "valueB") or '
-          'ProcessCommandLine startswith "valueC"']
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where ProcessCommandLine in~ ("valueA", "valueB") or '
+            'ProcessCommandLine startswith "valueC"'
+        ]
+    )
 
 
 def test_kusto_regex_query(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -121,13 +159,18 @@ def test_kusto_regex_query(microsoft365defender_backend: KustoBackend):
                     CommandLine|re: foo.*bar
                     ProcessId: foo
                 condition: sel
-        """)
-    ) == ['DeviceProcessEvents\n| where ProcessCommandLine matches regex "foo.*bar" and ProcessId =~ "foo"']
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where ProcessCommandLine matches regex "foo.*bar" and ProcessId =~ "foo"']
+    )
 
 
 def test_kusto_cidr_query(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml("""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
             title: Test
             status: test
             logsource:
@@ -137,13 +180,18 @@ def test_kusto_cidr_query(microsoft365defender_backend: KustoBackend):
                 sel:
                     SourceIp|cidr: 192.168.0.0/16
                 condition: sel
-        """)
-    ) == ['DeviceNetworkEvents\n| where ipv4_is_in_range(LocalIP, "192.168.0.0/16")']
+        """
+            )
+        )
+        == ['DeviceNetworkEvents\n| where ipv4_is_in_range(LocalIP, "192.168.0.0/16")']
+    )
 
 
 def test_kusto_negation_basic(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml(r"""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                r"""
             title: Test
             status: test
             logsource:
@@ -159,15 +207,22 @@ def test_kusto_negation_basic(microsoft365defender_backend: KustoBackend):
                     CommandLine:
                         - 'notthis'
                 condition: selection and not filter
-        """)
-    ) == ['DeviceProcessEvents\n| where (FolderPath endswith "\\\\process.exe" and '
-          'ProcessCommandLine =~ "this") and '
-          '(not(ProcessCommandLine =~ "notthis"))']
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where (FolderPath endswith "\\\\process.exe" and '
+            'ProcessCommandLine =~ "this") and '
+            '(not(ProcessCommandLine =~ "notthis"))'
+        ]
+    )
 
 
 def test_kusto_negation_contains(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml(r"""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                r"""
             title: Test
             status: test
             logsource:
@@ -183,15 +238,22 @@ def test_kusto_negation_contains(microsoft365defender_backend: KustoBackend):
                     CommandLine:
                         - '*notthis*'
                 condition: selection and not filter
-        """)
-    ) == ['DeviceProcessEvents\n| where (FolderPath endswith "\\\\process.exe" and '
-          'ProcessCommandLine contains "this") and '
-          '(not(ProcessCommandLine contains "notthis"))']
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where (FolderPath endswith "\\\\process.exe" and '
+            'ProcessCommandLine contains "this") and '
+            '(not(ProcessCommandLine contains "notthis"))'
+        ]
+    )
 
 
 def test_kusto_grouping(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml(r"""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                r"""
             title: Net connection logic test
             status: test
             logsource:
@@ -206,15 +268,22 @@ def test_kusto_grouping(microsoft365defender_backend: KustoBackend):
                         - '*pastebin.com*'
                         - '*anothersite.com*'
                 condition: selection
-    """)
-    ) == ['DeviceNetworkEvents\n| where (InitiatingProcessFolderPath endswith "\\\\powershell.exe" or '
-          'InitiatingProcessFolderPath endswith "\\\\pwsh.exe") and (RemoteUrl contains '
-          '"pastebin.com" or RemoteUrl contains "anothersite.com")']
+    """
+            )
+        )
+        == [
+            'DeviceNetworkEvents\n| where (InitiatingProcessFolderPath endswith "\\\\powershell.exe" or '
+            'InitiatingProcessFolderPath endswith "\\\\pwsh.exe") and (RemoteUrl contains '
+            '"pastebin.com" or RemoteUrl contains "anothersite.com")'
+        ]
+    )
 
 
 def test_kusto_escape_cmdline_slash(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml(r"""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                r"""
             title: Delete All Scheduled Tasks
             id: 220457c1-1c9f-4c2e-afe6-9598926222c1
             status: test
@@ -240,17 +309,23 @@ def test_kusto_escape_cmdline_slash(microsoft365defender_backend: KustoBackend):
             falsepositives:
                 - Unlikely
             level: high
-        """)
-    ) == ['DeviceProcessEvents\n| where FolderPath endswith "\\\\schtasks.exe" and '
-          '(ProcessCommandLine contains " /delete " and '
-          'ProcessCommandLine contains "/tn *" and '
-          'ProcessCommandLine contains " /f")']
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where FolderPath endswith "\\\\schtasks.exe" and '
+            '(ProcessCommandLine contains " /delete " and '
+            'ProcessCommandLine contains "/tn *" and '
+            'ProcessCommandLine contains " /f")'
+        ]
+    )
 
 
 def test_kusto_cmdline_filters(microsoft365defender_backend: KustoBackend):
-    assert microsoft365defender_backend.convert(
-        SigmaCollection.from_yaml(
-            r"""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                r"""
             title: New Firewall Rule Added Via Netsh.EXE
             id: cd5cfd80-aa5f-44c0-9c20-108c4ae12e3c
             status: test
@@ -285,14 +360,95 @@ def test_kusto_cmdline_filters(microsoft365defender_backend: KustoBackend):
                 - Software installations
             level: medium
             """
+            )
         )
-    ) == ['DeviceProcessEvents\n| where ((FolderPath endswith "\\\\netsh.exe" or '
-          'ProcessVersionInfoOriginalFileName =~ "netsh.exe") and '
-          '(ProcessCommandLine contains " firewall " and ProcessCommandLine contains " add ")) and '
-          '(not(((ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in action=allow '
-          '\\"program=" and ProcessCommandLine contains ":\\\\Program Files (x86)\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
-          'enable=yes profile=Any") or (ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in '
-          'action=allow \\"program=" and ProcessCommandLine contains ":\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
-          'enable=yes profile=Any"))))'
-          ]
-    
+        == [
+            'DeviceProcessEvents\n| where ((FolderPath endswith "\\\\netsh.exe" or '
+            'ProcessVersionInfoOriginalFileName =~ "netsh.exe") and '
+            '(ProcessCommandLine contains " firewall " and ProcessCommandLine contains " add ")) and '
+            '(not(((ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in action=allow '
+            '\\"program=" and ProcessCommandLine contains ":\\\\Program Files (x86)\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
+            'enable=yes profile=Any") or (ProcessCommandLine contains "advfirewall firewall add rule name=Dropbox dir=in '
+            'action=allow \\"program=" and ProcessCommandLine contains ":\\\\Program Files\\\\Dropbox\\\\Client\\\\Dropbox.exe\\" '
+            'enable=yes profile=Any"))))'
+        ]
+    )
+
+
+def test_kusto_sigmanumber_conversion(kusto_backend_no_pipeline: KustoBackend):
+    assert (
+        kusto_backend_no_pipeline.convert(
+            SigmaCollection.from_yaml(
+                """
+        title: Test
+        status: test
+        logsource:
+            product: windows
+        detection:
+            sel:
+                EventID: 1
+            condition: sel
+    """
+            )
+        )
+        == ["EventID == 1"]
+    )
+
+
+def test_kusto_sigmanumber_conversion_mixed_types(kusto_backend_no_pipeline: KustoBackend):
+    assert (
+        kusto_backend_no_pipeline.convert(
+            SigmaCollection.from_yaml(
+                r"""
+title: ETW Logging Disabled In .NET Processes - Sysmon Registry
+id: bf4fc428-dcc3-4bbd-99fe-2422aeee2544
+related:
+    - id: a4c90ea1-2634-4ca0-adbb-35eae169b6fc
+      type: similar
+status: test
+description: Potential adversaries stopping ETW providers recording loaded .NET assemblies.
+references:
+    - https://twitter.com/_xpn_/status/1268712093928378368
+    - https://social.msdn.microsoft.com/Forums/vstudio/en-US/0878832e-39d7-4eaf-8e16-a729c4c40975/what-can-i-use-e13c0d23ccbc4e12931bd9cc2eee27e4-for?forum=clr
+    - https://github.com/dotnet/runtime/blob/ee2355c801d892f2894b0f7b14a20e6cc50e0e54/docs/design/coreclr/jit/viewing-jit-dumps.md#setting-configuration-variables
+    - https://github.com/dotnet/runtime/blob/f62e93416a1799aecc6b0947adad55a0d9870732/src/coreclr/src/inc/clrconfigvalues.h#L35-L38
+    - https://github.com/dotnet/runtime/blob/7abe42dc1123722ed385218268bb9fe04556e3d3/src/coreclr/src/inc/clrconfig.h#L33-L39
+    - https://github.com/dotnet/runtime/search?p=1&q=COMPlus_&unscoped_q=COMPlus_
+    - https://bunnyinside.com/?term=f71e8cb9c76a
+    - http://managed670.rssing.com/chan-5590147/all_p1.html
+    - https://github.com/dotnet/runtime/blob/4f9ae42d861fcb4be2fcd5d3d55d5f227d30e723/docs/coding-guidelines/clr-jit-coding-conventions.md#1412-disabling-code
+    - https://blog.xpnsec.com/hiding-your-dotnet-complus-etwenabled/
+    - https://i.blackhat.com/EU-21/Wednesday/EU-21-Teodorescu-Veni-No-Vidi-No-Vici-Attacks-On-ETW-Blind-EDRs.pdf
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-06-05
+modified: 2023-08-17
+tags:
+    - attack.defense-evasion
+    - attack.t1112
+    - attack.t1562
+logsource:
+    product: windows
+    category: registry_set
+detection:
+    selection_etw_enabled:
+        TargetObject|endswith: 'SOFTWARE\Microsoft\.NETFramework\ETWEnabled'
+        Details: 'DWORD (0x00000000)'
+    selection_complus:
+        TargetObject|endswith:
+            - '\COMPlus_ETWEnabled'
+            - '\COMPlus_ETWFlags'
+        Details:
+            - 0 # For REG_SZ type
+            - 'DWORD (0x00000000)'
+    condition: 1 of selection_*
+falsepositives:
+    - Unknown
+level: high
+    """
+            )
+        )
+        == [
+            '(TargetObject endswith "SOFTWARE\\\\Microsoft\\\\.NETFramework\\\\ETWEnabled" and Details =~ "DWORD (0x00000000)") or ((TargetObject endswith "\\\\COMPlus_ETWEnabled" or '
+            'TargetObject endswith "\\\\COMPlus_ETWFlags") and (Details in~ ("0", "DWORD (0x00000000)")))'
+        ]
+    )

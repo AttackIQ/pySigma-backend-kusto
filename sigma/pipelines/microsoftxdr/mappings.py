@@ -30,6 +30,17 @@ CATEGORY_TO_TABLE_MAPPINGS = {
     "network_connection": "DeviceNetworkEvents",
 }
 
+EVENTID_CATEGORY_TO_TABLE_MAPPINGS = {
+    "process": "DeviceProcessEvents",
+    "logon": "DeviceLogonEvents",
+    "registry": "DeviceRegistryEvents",
+    "file": "DeviceFileEvents",
+    "network": "DeviceNetworkEvents",
+    "image_load": "DeviceImageLoadEvents",
+    "pipe": "DeviceEvents",
+    "wmi": "DeviceEvents",
+}
+
 ## Rule Categories -> RuleConditions
 CATEGORY_TO_CONDITIONS_MAPPINGS = {
     "process_creation": logsource_windows_process_creation(),
@@ -109,6 +120,7 @@ MICROSOFT_XDR_FIELD_MAPPINGS = MicrosoftXDRFieldMappings(
             "sha1": "SHA1",
             "sha256": "SHA256",
             "md5": "MD5",
+            "ObjectName": "FolderPath",
         },
         "DeviceNetworkEvents": {  # network_connection, Sysmon EventID 3 -> DeviceNetworkEvents table
             # 'ProcessGuid': ?,
@@ -138,6 +150,7 @@ MICROSOFT_XDR_FIELD_MAPPINGS = MicrosoftXDRFieldMappings(
             # 'NewName': ?
             "Details": "RegistryValueData",
             "User": "InitiatingProcessAccountName",
+            "ObjectName": "RegistryKey",
         },
     },
     generic_mappings={
@@ -145,6 +158,7 @@ MICROSOFT_XDR_FIELD_MAPPINGS = MicrosoftXDRFieldMappings(
         "User": "InitiatingProcessAccountName",
         "CommandLine": "InitiatingProcessCommandLine",
         "Image": "InitiatingProcessFolderPath",
+        "ProcessName": "InitiatingProcessFolderPath",
         "SourceImage": "InitiatingProcessFolderPath",
         "ProcessId": "InitiatingProcessId",
         "md5": "InitiatingProcessMD5",

@@ -28,6 +28,7 @@ from ..kusto_common.transformations import (
 )
 from .mappings import (
     CATEGORY_TO_TABLE_MAPPINGS,
+    EVENTID_CATEGORY_TO_TABLE_MAPPINGS,
     SENTINEL_ASIM_FIELD_MAPPINGS,
 )
 from .schema import SentinelASIMSchema
@@ -40,6 +41,12 @@ from .transformations import (
 
 SENTINEL_ASIM_SCHEMA = create_schema(SentinelASIMSchema, SENTINEL_ASIM_TABLES)
 
+# Drop EventID field
+drop_eventid_proc_item = ProcessingItem(
+    identifier="sentinel_asim_drop_eventid",
+    transformation=DropDetectionItemTransformation(),
+    field_name_conditions=[IncludeFieldCondition(["EventID", "EventCode", "ObjectType"])],
+)
 
 ## Fieldmappings
 fieldmappings_proc_item = ProcessingItem(
@@ -135,8 +142,8 @@ rule_error_proc_items = [
             "Rule category not yet supported by the Sentinel ASIM pipeline or query_table is not set."
         ),
         rule_conditions=[
-            RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),
-            RuleProcessingStateCondition("query_table", None),
+            RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),  # type: ignore
+            RuleProcessingStateCondition("query_table", None),  # type: ignore
         ],
         rule_condition_linking=all,
     )
@@ -166,8 +173,8 @@ for table_name in SENTINEL_ASIM_SCHEMA.tables.keys():
             ),
             field_name_conditions=[ExcludeFieldCondition(fields=valid_fields)],
             rule_conditions=[
-                RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),
-                RuleProcessingStateCondition("query_table", table_name),
+                RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),  # type: ignore
+                RuleProcessingStateCondition("query_table", table_name),  # type: ignore
             ],
             rule_condition_linking=all,
         )
@@ -184,8 +191,8 @@ field_error_proc_items.append(
             ExcludeFieldCondition(fields=list(SENTINEL_ASIM_FIELD_MAPPINGS.generic_mappings.keys()) + ["Hashes"])
         ],
         rule_conditions=[
-            RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),
-            RuleProcessingStateCondition("query_table", None),
+            RuleProcessingItemAppliedCondition("sentinel_asim_set_query_table"),  # type: ignore
+            RuleProcessingStateCondition("query_table", None),  # type: ignore
         ],
         rule_condition_linking=all,
     )
@@ -207,8 +214,11 @@ def sentinel_asim_pipeline(
     pipeline_items = [
         ProcessingItem(
             identifier="sentinel_asim_set_query_table",
-            transformation=SetQueryTableStateTransformation(query_table, CATEGORY_TO_TABLE_MAPPINGS),
+            transformation=SetQueryTableStateTransformation(
+                query_table, CATEGORY_TO_TABLE_MAPPINGS, EVENTID_CATEGORY_TO_TABLE_MAPPINGS
+            ),
         ),
+        drop_eventid_proc_item,
         fieldmappings_proc_item,
         generic_field_mappings_proc_item,
         *replacement_proc_items,
@@ -221,5 +231,5 @@ def sentinel_asim_pipeline(
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
-        postprocessing_items=[PrependQueryTablePostprocessingItem],
+        postprocessing_items=[PrependQueryTablePostprocessingItem],  # type: ignore
     )

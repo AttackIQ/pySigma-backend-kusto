@@ -27,6 +27,7 @@ from ..kusto_common.transformations import (
 )
 from .mappings import (
     CATEGORY_TO_TABLE_MAPPINGS,
+    EVENTID_CATEGORY_TO_TABLE_MAPPINGS,
     MICROSOFT_XDR_FIELD_MAPPINGS,
 )
 from .schema import MicrosoftXDRSchema
@@ -41,6 +42,13 @@ MICROSOFT_XDR_SCHEMA = create_schema(MicrosoftXDRSchema, MICROSOFT_XDR_TABLES)
 
 # Mapping from ParentImage to InitiatingProcessParentFileName. Must be used alongside of ParentImageValueTransformation
 parent_image_field_mapping = {"ParentImage": "InitiatingProcessParentFileName"}
+
+# Drop EventID field
+drop_eventid_proc_item = ProcessingItem(
+    identifier="microsoft_xdr_drop_eventid",
+    transformation=DropDetectionItemTransformation(),
+    field_name_conditions=[IncludeFieldCondition(["EventID", "EventCode", "ObjectType"])],
+)
 
 
 ## Fieldmappings
@@ -124,7 +132,7 @@ parent_image_proc_items = [
     # First apply fieldmapping from ParentImage to InitiatingProcessParentFileName for non process-creation rules
     ProcessingItem(
         identifier="microsoft_xdr_parent_image_fieldmapping",
-        transformation=FieldMappingTransformation(parent_image_field_mapping),
+        transformation=FieldMappingTransformation(parent_image_field_mapping),  # type: ignore
         rule_conditions=[
             # Exclude process_creation events, there's direct field mapping in this schema table
             LogsourceCondition(category="process_creation")
@@ -156,8 +164,8 @@ rule_error_proc_items = [
             "Rule category not yet supported by the Microsoft XDR pipeline or query_table is not set."
         ),
         rule_conditions=[
-            RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),
-            RuleProcessingStateCondition("query_table", None),
+            RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),  # type: ignore
+            RuleProcessingStateCondition("query_table", None),  # type: ignore
         ],
         rule_condition_linking=all,
     )
@@ -205,8 +213,8 @@ field_error_proc_items.append(
             ExcludeFieldCondition(fields=list(MICROSOFT_XDR_FIELD_MAPPINGS.generic_mappings.keys()) + ["Hashes"])
         ],
         rule_conditions=[
-            RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),
-            RuleProcessingStateCondition("query_table", None),
+            RuleProcessingItemAppliedCondition("microsoft_xdr_set_query_table"),  # type: ignore
+            RuleProcessingStateCondition("query_table", None),  # type: ignore
         ],
         rule_condition_linking=all,
     )
@@ -236,8 +244,11 @@ def microsoft_xdr_pipeline(
     pipeline_items = [
         ProcessingItem(
             identifier="microsoft_xdr_set_query_table",
-            transformation=SetQueryTableStateTransformation(query_table, CATEGORY_TO_TABLE_MAPPINGS),
+            transformation=SetQueryTableStateTransformation(
+                query_table, CATEGORY_TO_TABLE_MAPPINGS, EVENTID_CATEGORY_TO_TABLE_MAPPINGS
+            ),
         ),
+        drop_eventid_proc_item,
         fieldmappings_proc_item,
         generic_field_mappings_proc_item,
         *replacement_proc_items,
@@ -253,5 +264,5 @@ def microsoft_xdr_pipeline(
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
-        postprocessing_items=[PrependQueryTablePostprocessingItem],
+        postprocessing_items=[PrependQueryTablePostprocessingItem],  # type: ignore
     )

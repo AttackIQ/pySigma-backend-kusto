@@ -35,6 +35,18 @@ CATEGORY_TO_TABLE_MAPPINGS = {
     "network_connection": "SecurityEvent",
 }
 
+
+EVENTID_CATEGORY_TO_TABLE_MAPPINGS = {
+    "process": "SecurityEvent",
+    "logon": "SecurityEvent",
+    "registry": "SecurityEvent",
+    "file": "SecurityEvent",
+    "network": "SecurityEvent",
+    "image_load": "SecurityEvent",
+    "pipe": "SecurityEvent",
+    "wmi": "SecurityEvent",
+}
+
 ## Rule Categories -> RuleConditions
 CATEGORY_TO_CONDITIONS_MAPPINGS = {
     "process_creation": logsource_windows_process_creation(),

@@ -87,6 +87,7 @@ def extract_table_name(soup: BeautifulSoup) -> Optional[str]:
     :param soup: BeautifulSoup object of the schema page.
     :return: The extracted table name or None if not found.
     """
+
     def extract_from_code():
         code_element = soup.find("code", class_="lang-kql")
         if not code_element:
@@ -113,7 +114,7 @@ def extract_field_data(soup: BeautifulSoup) -> List[Dict[str, str]]:
     :param soup: BeautifulSoup object of the schema page.
     :return: A list of dictionaries with the field name and type.
     """
-    #schema_details_section = soup.find(id="schema-details")
+    # schema_details_section = soup.find(id="schema-details")
     field_data = {}
 
     # Loop through all tables in the section and its subsections
@@ -187,4 +188,3 @@ if __name__ == "__main__":
     schema_data, common_field_data = process_asim_schemas()
     write_schema(OUTPUT_FILE, schema_data, common_field_data)
     print(f"Schema written to {OUTPUT_FILE}")
-    

@@ -221,3 +221,60 @@ def test_sentinel_asim_webrequest_hashes_field_values(asim_backend):
 
     assert asim_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert asim_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_sentinel_asim_pipeline_unsupported_rule_type(asim_backend):
+    yaml_rule = """
+        title: test
+        status: test
+        logsource:
+            category: invalid_category
+            product: invalid_product
+        detection:
+            sel:
+                field: whatever
+            condition: sel
+    """
+    with pytest.raises(SigmaTransformationError, match="Unable to determine table name from rule. "):
+        asim_backend.convert(SigmaCollection.from_yaml(yaml_rule))
+
+
+def test_sentinel_asim_eventid_mapping(asim_backend):
+    """Test that EventID is used to determine table when category is missing"""
+    yaml_rule = """
+        title: Test EventID Mapping
+        status: test
+        logsource:
+            product: windows
+        detection:
+            sel:
+                EventID: 1
+                Image: C:\\Windows\\System32\\cmd.exe
+            condition: sel
+    """
+    # EventID 1 should map to process category -> imProcessCreate table
+    expected_result = ['imProcessCreate\n| where TargetProcessName =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"']
+
+    assert asim_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert asim_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_sentinel_asim_category_precedence(asim_backend):
+    """Test that category takes precedence over EventID when both are present"""
+    yaml_rule = """
+        title: Test Category Precedence
+        status: test
+        logsource:
+            category: file_event
+            product: windows
+        detection:
+            sel:
+                EventID: 1  # Process creation EventID, but should use file_event category
+                Image: C:\\Windows\\System32\\cmd.exe
+            condition: sel
+    """
+    # Should use imFileEvent table based on category, not imProcessCreate from EventID
+    expected_result = ['imFileEvent\n| where TargetFilePath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"']
+
+    assert asim_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert asim_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result

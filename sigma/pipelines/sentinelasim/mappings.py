@@ -39,6 +39,19 @@ CATEGORY_TO_TABLE_MAPPINGS = {
     "webserver": next((table for table in table_names if "web" in table.lower()), "imWebSession"),
 }
 
+
+EVENTID_CATEGORY_TO_TABLE_MAPPINGS = {
+    "process": "imProcessCreate",
+    "logon": "imAuthentication",
+    "registry": "imRegistry",
+    "file": "imFileEvent",
+    "network": "imNetworkSession",
+    "image_load": "imProcessCreate",
+    "pipe": "imFileEvent",
+    "wmi": "imProcessCreate",
+}
+
+
 ## Rule Categories -> RuleConditions
 CATEGORY_TO_CONDITIONS_MAPPINGS = {
     "process_creation": logsource_windows_process_creation(),
@@ -350,5 +363,6 @@ SENTINEL_ASIM_FIELD_MAPPINGS = SentinelASIMFieldMappings(
         "IpAddress": "DvcIpAddr",
         "SourceSystem": "EventProduct",
         "TimeGenerated": "EventStartTime",
+        "ProcessName": "ActingProcessName",
     },
 )

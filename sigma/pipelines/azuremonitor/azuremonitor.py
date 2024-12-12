@@ -27,6 +27,7 @@ from ..kusto_common.transformations import (
 from .mappings import (
     AZURE_MONITOR_FIELD_MAPPINGS,
     CATEGORY_TO_TABLE_MAPPINGS,
+    EVENTID_CATEGORY_TO_TABLE_MAPPINGS,
 )
 from .schema import AzureMonitorSchema
 from .tables import AZURE_MONITOR_TABLES
@@ -37,6 +38,12 @@ from .transformations import (
 
 AZURE_MONITOR_SCHEMA = create_schema(AzureMonitorSchema, AZURE_MONITOR_TABLES)
 
+# Drop ObjectType fields
+drop_fields_proc_item = ProcessingItem(
+    identifier="azure_monitor_drop_fields",
+    transformation=DropDetectionItemTransformation(),
+    field_name_conditions=[IncludeFieldCondition(["ObjectType"])],
+)
 
 ## Fieldmappings
 fieldmappings_proc_item = ProcessingItem(
@@ -132,8 +139,8 @@ rule_error_proc_items = [
             "Rule category not yet supported by the Azure Monitor pipeline or query_table is not set."
         ),
         rule_conditions=[
-            RuleProcessingItemAppliedCondition("azure_monitor_set_query_table"),
-            RuleProcessingStateCondition("query_table", None),
+            RuleProcessingItemAppliedCondition("azure_monitor_set_query_table"),  # type: ignore
+            RuleProcessingStateCondition("query_table", None),  # type: ignore
         ],
         rule_condition_linking=all,
     )
@@ -181,8 +188,8 @@ field_error_proc_items.append(
             ExcludeFieldCondition(fields=list(AZURE_MONITOR_FIELD_MAPPINGS.generic_mappings.keys()) + ["Hashes"])
         ],
         rule_conditions=[
-            RuleProcessingItemAppliedCondition("azure_monitor_set_query_table"),
-            RuleProcessingStateCondition("query_table", None),
+            RuleProcessingItemAppliedCondition("azure_monitor_set_query_table"),  # type: ignore
+            RuleProcessingStateCondition("query_table", None),  # type: ignore
         ],
         rule_condition_linking=all,
     )
@@ -202,9 +209,12 @@ def azure_monitor_pipeline(query_table: Optional[str] = None) -> ProcessingPipel
     pipeline_items = [
         ProcessingItem(
             identifier="azure_monitor_set_query_table",
-            transformation=SetQueryTableStateTransformation(query_table, CATEGORY_TO_TABLE_MAPPINGS),
+            transformation=SetQueryTableStateTransformation(
+                query_table, CATEGORY_TO_TABLE_MAPPINGS, EVENTID_CATEGORY_TO_TABLE_MAPPINGS
+            ),
         ),
         fieldmappings_proc_item,
+        drop_fields_proc_item,
         # generic_field_mappings_proc_item,
         *replacement_proc_items,
         *rule_error_proc_items,
@@ -216,5 +226,5 @@ def azure_monitor_pipeline(query_table: Optional[str] = None) -> ProcessingPipel
         priority=10,
         items=pipeline_items,
         allowed_backends=frozenset(["kusto"]),
-        postprocessing_items=[PrependQueryTablePostprocessingItem],
+        postprocessing_items=[PrependQueryTablePostprocessingItem],  # type: ignore
     )
