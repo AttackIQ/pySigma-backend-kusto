@@ -79,7 +79,7 @@ class KustoBackend(TextQueryBackend):
     startswith_expression: ClassVar[str] = "{field} startswith {value}"
     endswith_expression: ClassVar[str] = "{field} endswith {value}"
     contains_expression: ClassVar[str] = "{field} contains {value}"
-    wildcard_match_expression: ClassVar[str | None] = (
+    wildcard_match_expression: ClassVar[Union[str, None]] = (
         None  # Special expression if wildcards can't be matched with the eq_token operator
     )
 
@@ -242,7 +242,7 @@ class KustoBackend(TextQueryBackend):
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
 
-    def convert_value_str(self, s: SigmaString | SigmaNumber, state: ConversionState) -> str:
+    def convert_value_str(self, s: Union[SigmaString, SigmaNumber], state: ConversionState) -> str:
         """Convert a SigmaString into a plain string which can be used in query."""
         if not isinstance(s, SigmaString):
             s = SigmaString(str(s))

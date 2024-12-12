@@ -1,3 +1,5 @@
+from typing import Optional
+
 # Event ID Categories based on Windows Security Events
 EVENTID_CATEGORIES = {
     "process": [1, 5, 10, 25, 4688, 4689, 4696],  # Process creation, termination, access, tampering
@@ -13,7 +15,7 @@ EVENTID_CATEGORIES = {
 }
 
 
-def get_category_from_eventid(eventid: int) -> str | None:
+def get_category_from_eventid(eventid: int) -> Optional[str]:
     """
     Determine the category based on the Event ID
     """

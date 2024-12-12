@@ -74,7 +74,7 @@ class BaseHashesValuesTransformation(DetectionItemTransformation):
     Base class for transforming the Hashes field to get rid of the hash algorithm prefix in each value and create new detection items for each hash type.
     """
 
-    def __init__(self, valid_hash_algos: List[str], field_prefix: str | None = None, drop_algo_prefix: bool = False):
+    def __init__(self, valid_hash_algos: List[str], field_prefix: Optional[str] = None, drop_algo_prefix: bool = False):
         """
         :param valid_hash_algos: A list of valid hash algorithms that are supported by the table.
         :param field_prefix: The prefix to use for the new detection items.
