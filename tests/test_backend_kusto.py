@@ -1,12 +1,14 @@
 import pytest
-from sigma.collection import SigmaCollection
+
 from sigma.backends.kusto import KustoBackend
+from sigma.collection import SigmaCollection
 from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 
 
 @pytest.fixture
 def microsoft365defender_backend():
     return KustoBackend(processing_pipeline=microsoft_365_defender_pipeline())
+
 
 @pytest.fixture
 def kusto_backend_no_pipeline():
@@ -374,7 +376,10 @@ def test_kusto_cmdline_filters(microsoft365defender_backend: KustoBackend):
 
 
 def test_kusto_sigmanumber_conversion(kusto_backend_no_pipeline: KustoBackend):
-    assert kusto_backend_no_pipeline.convert(SigmaCollection.from_yaml("""
+    assert (
+        kusto_backend_no_pipeline.convert(
+            SigmaCollection.from_yaml(
+                """
         title: Test
         status: test
         logsource:
@@ -383,11 +388,18 @@ def test_kusto_sigmanumber_conversion(kusto_backend_no_pipeline: KustoBackend):
             sel:
                 EventID: 1
             condition: sel
-    """)) == ['EventID == 1']
+    """
+            )
+        )
+        == ["EventID == 1"]
+    )
 
 
 def test_kusto_sigmanumber_conversion_mixed_types(kusto_backend_no_pipeline: KustoBackend):
-    assert kusto_backend_no_pipeline.convert(SigmaCollection.from_yaml(r"""
+    assert (
+        kusto_backend_no_pipeline.convert(
+            SigmaCollection.from_yaml(
+                r"""
 title: ETW Logging Disabled In .NET Processes - Sysmon Registry
 id: bf4fc428-dcc3-4bbd-99fe-2422aeee2544
 related:
@@ -432,9 +444,11 @@ detection:
 falsepositives:
     - Unknown
 level: high
-    """)) == [
-        '(TargetObject endswith "SOFTWARE\\\\Microsoft\\\\.NETFramework\\\\ETWEnabled" and Details =~ "DWORD (0x00000000)") or ((TargetObject endswith "\\\\COMPlus_ETWEnabled" or '
-        'TargetObject endswith "\\\\COMPlus_ETWFlags") and (Details in~ ("0", "DWORD (0x00000000)")))'
-    ]
-
-
+    """
+            )
+        )
+        == [
+            '(TargetObject endswith "SOFTWARE\\\\Microsoft\\\\.NETFramework\\\\ETWEnabled" and Details =~ "DWORD (0x00000000)") or ((TargetObject endswith "\\\\COMPlus_ETWEnabled" or '
+            'TargetObject endswith "\\\\COMPlus_ETWFlags") and (Details in~ ("0", "DWORD (0x00000000)")))'
+        ]
+    )

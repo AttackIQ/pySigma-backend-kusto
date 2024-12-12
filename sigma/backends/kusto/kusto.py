@@ -28,7 +28,11 @@ class KustoBackend(TextQueryBackend):
 
     # Operator precedence
     parenthesize = True
-    precedence: ClassVar[Tuple[Type[ConditionItem], Type[ConditionItem], Type[ConditionItem]]] = (ConditionNOT, ConditionAND, ConditionOR)
+    precedence: ClassVar[Tuple[Type[ConditionItem], Type[ConditionItem], Type[ConditionItem]]] = (
+        ConditionNOT,
+        ConditionAND,
+        ConditionOR,
+    )
     group_expression: ClassVar[str] = (
         "({expr})"  # Expression for precedence override grouping as format string with {expr} placeholder
     )
@@ -180,16 +184,19 @@ class KustoBackend(TextQueryBackend):
                 self.convert_value_str(arg.value, state)
                 for arg in cond.args
                 if isinstance(arg, ConditionFieldEqualsValueExpression)
-                and (isinstance(arg.value, SigmaString) and not arg.value.contains_special())
+                and (
+                    (isinstance(arg.value, SigmaString) and not arg.value.contains_special())
+                    or (isinstance(arg.value, SigmaNumber))
+                )
             ]
         )
         list_wildcards = [
-            arg.value for arg in cond.args 
-            if isinstance(arg, ConditionFieldEqualsValueExpression) 
-            and isinstance(arg.value, SigmaString) 
+            arg.value
+            for arg in cond.args
+            if isinstance(arg, ConditionFieldEqualsValueExpression)
+            and isinstance(arg.value, SigmaString)
             and arg.value.contains_special()
         ]
-        as_in_expr = ""
         as_in_expr = ""
         # Convert as_in and wildcard values separately
         if list_nonwildcard:
@@ -238,7 +245,7 @@ class KustoBackend(TextQueryBackend):
     def convert_value_str(self, s: SigmaString | SigmaNumber, state: ConversionState) -> str:
         """Convert a SigmaString into a plain string which can be used in query."""
         if not isinstance(s, SigmaString):
-            return str(s)
+            s = SigmaString(str(s))
         converted = super().convert_value_str(s, state)
         # If we have a wildcard in a string, we need to un-escape it
         # See issue #13
