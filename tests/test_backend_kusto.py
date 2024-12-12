@@ -8,6 +8,10 @@ from sigma.pipelines.microsoft365defender import microsoft_365_defender_pipeline
 def microsoft365defender_backend():
     return KustoBackend(processing_pipeline=microsoft_365_defender_pipeline())
 
+@pytest.fixture
+def kusto_backend_no_pipeline():
+    return KustoBackend()
+
 
 def test_kusto_and_expression(microsoft365defender_backend: KustoBackend):
     assert (
@@ -367,3 +371,70 @@ def test_kusto_cmdline_filters(microsoft365defender_backend: KustoBackend):
             'enable=yes profile=Any"))))'
         ]
     )
+
+
+def test_kusto_sigmanumber_conversion(kusto_backend_no_pipeline: KustoBackend):
+    assert kusto_backend_no_pipeline.convert(SigmaCollection.from_yaml("""
+        title: Test
+        status: test
+        logsource:
+            product: windows
+        detection:
+            sel:
+                EventID: 1
+            condition: sel
+    """)) == ['EventID == 1']
+
+
+def test_kusto_sigmanumber_conversion_mixed_types(kusto_backend_no_pipeline: KustoBackend):
+    assert kusto_backend_no_pipeline.convert(SigmaCollection.from_yaml(r"""
+title: ETW Logging Disabled In .NET Processes - Sysmon Registry
+id: bf4fc428-dcc3-4bbd-99fe-2422aeee2544
+related:
+    - id: a4c90ea1-2634-4ca0-adbb-35eae169b6fc
+      type: similar
+status: test
+description: Potential adversaries stopping ETW providers recording loaded .NET assemblies.
+references:
+    - https://twitter.com/_xpn_/status/1268712093928378368
+    - https://social.msdn.microsoft.com/Forums/vstudio/en-US/0878832e-39d7-4eaf-8e16-a729c4c40975/what-can-i-use-e13c0d23ccbc4e12931bd9cc2eee27e4-for?forum=clr
+    - https://github.com/dotnet/runtime/blob/ee2355c801d892f2894b0f7b14a20e6cc50e0e54/docs/design/coreclr/jit/viewing-jit-dumps.md#setting-configuration-variables
+    - https://github.com/dotnet/runtime/blob/f62e93416a1799aecc6b0947adad55a0d9870732/src/coreclr/src/inc/clrconfigvalues.h#L35-L38
+    - https://github.com/dotnet/runtime/blob/7abe42dc1123722ed385218268bb9fe04556e3d3/src/coreclr/src/inc/clrconfig.h#L33-L39
+    - https://github.com/dotnet/runtime/search?p=1&q=COMPlus_&unscoped_q=COMPlus_
+    - https://bunnyinside.com/?term=f71e8cb9c76a
+    - http://managed670.rssing.com/chan-5590147/all_p1.html
+    - https://github.com/dotnet/runtime/blob/4f9ae42d861fcb4be2fcd5d3d55d5f227d30e723/docs/coding-guidelines/clr-jit-coding-conventions.md#1412-disabling-code
+    - https://blog.xpnsec.com/hiding-your-dotnet-complus-etwenabled/
+    - https://i.blackhat.com/EU-21/Wednesday/EU-21-Teodorescu-Veni-No-Vidi-No-Vici-Attacks-On-ETW-Blind-EDRs.pdf
+author: Roberto Rodriguez (Cyb3rWard0g), OTR (Open Threat Research)
+date: 2020-06-05
+modified: 2023-08-17
+tags:
+    - attack.defense-evasion
+    - attack.t1112
+    - attack.t1562
+logsource:
+    product: windows
+    category: registry_set
+detection:
+    selection_etw_enabled:
+        TargetObject|endswith: 'SOFTWARE\Microsoft\.NETFramework\ETWEnabled'
+        Details: 'DWORD (0x00000000)'
+    selection_complus:
+        TargetObject|endswith:
+            - '\COMPlus_ETWEnabled'
+            - '\COMPlus_ETWFlags'
+        Details:
+            - 0 # For REG_SZ type
+            - 'DWORD (0x00000000)'
+    condition: 1 of selection_*
+falsepositives:
+    - Unknown
+level: high
+    """)) == [
+        '(TargetObject endswith "SOFTWARE\\\\Microsoft\\\\.NETFramework\\\\ETWEnabled" and Details =~ "DWORD (0x00000000)") or ((TargetObject endswith "\\\\COMPlus_ETWEnabled" or '
+        'TargetObject endswith "\\\\COMPlus_ETWFlags") and (Details in~ ("0", "DWORD (0x00000000)")))'
+    ]
+
+
