@@ -48,7 +48,6 @@ class SplitDomainUserTransformation(DetectionItemTransformation):
                 domain_detection_item = SigmaDetectionItem(field=domain_field, modifiers=[], value=domain_value)
                 to_return.append(SigmaDetection(detection_items=[user_detection_item, domain_detection_item]))
             else:
-
                 to_return.append(
                     SigmaDetection(
                         [
