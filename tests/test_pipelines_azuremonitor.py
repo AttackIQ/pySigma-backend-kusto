@@ -157,7 +157,7 @@ def test_azure_monitor_unsupported_category(azure_backend):
                 Field: value
             condition: sel
     """
-    with pytest.raises(SigmaTransformationError, match="Unable to determine table name for category"):
+    with pytest.raises(SigmaTransformationError, match="Unable to determine table name from rule. "):
         azure_backend.convert(SigmaCollection.from_yaml(yaml_rule))
 
 
@@ -215,3 +215,48 @@ def test_azure_monitor_pipeline_custom_table_invalid_category():
     custom_backend = KustoBackend(processing_pipeline=azure_monitor_pipeline(query_table="SecurityEvent"))
     assert custom_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert custom_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_azure_monitor_eventid_mapping(azure_backend):
+    """Test that EventID is used to determine table when category is missing"""
+    yaml_rule = """
+        title: Test EventID Mapping
+        status: test
+        logsource:
+            product: windows
+        detection:
+            sel:
+                EventID: 1
+                Image: C:\\Windows\\System32\\cmd.exe
+            condition: sel
+    """
+    # All EventIDs should map to SecurityEvent table
+    expected_result = [
+        'SecurityEvent\n| where EventID == 1 and NewProcessName =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"'
+    ]
+
+    assert azure_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert azure_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_azure_monitor_category_precedence(azure_backend):
+    """Test that category takes precedence over EventID when both are present"""
+    yaml_rule = """
+        title: Test Category Precedence
+        status: test
+        logsource:
+            category: file_event
+            product: windows
+        detection:
+            sel:
+                EventID: 1  # Process creation EventID, but should use file_event category
+                Image: C:\\Windows\\System32\\cmd.exe
+            condition: sel
+    """
+    # Should use SecurityEvent table based on category mapping
+    expected_result = [
+        'SecurityEvent\n| where EventID == 1 and NewProcessName =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"'
+    ]
+
+    assert azure_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert azure_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result

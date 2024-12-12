@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -12,6 +13,7 @@ from sigma.processing.transformations import (
 from sigma.rule import SigmaDetection, SigmaDetectionItem
 from sigma.types import SigmaString, SigmaType
 
+from ..kusto_common.mappings import get_table_from_eventid
 from ..kusto_common.schema import FieldMappings
 from .errors import InvalidHashAlgorithmError, SigmaTransformationError
 
@@ -25,7 +27,7 @@ class DynamicFieldMappingTransformation(FieldMappingTransformation):
     """
 
     def __init__(self, field_mappings: FieldMappings):
-        super().__init__(field_mappings.generic_mappings)
+        super().__init__(field_mappings.generic_mappings)  # type: ignore
         self.field_mappings = field_mappings
 
     def set_dynamic_mapping(self, pipeline):
@@ -57,13 +59,13 @@ class GenericFieldMappingTransformation(FieldMappingTransformation):
     """
 
     def __init__(self, field_mappings: FieldMappings):
-        super().__init__(field_mappings.generic_mappings)
+        super().__init__(field_mappings.generic_mappings)  # type: ignore
 
     def apply_detection_item(
         self, detection_item: SigmaDetectionItem
     ) -> Optional[Union[SigmaDetectionItem, SigmaString]]:
         if detection_item.field in self.mapping:
-            detection_item.field = self.mapping[detection_item.field]
+            detection_item.field = self.mapping[detection_item.field]  # type: ignore
         return detection_item
 
 
@@ -72,7 +74,7 @@ class BaseHashesValuesTransformation(DetectionItemTransformation):
     Base class for transforming the Hashes field to get rid of the hash algorithm prefix in each value and create new detection items for each hash type.
     """
 
-    def __init__(self, valid_hash_algos: List[str], field_prefix: str = None, drop_algo_prefix: bool = False):
+    def __init__(self, valid_hash_algos: List[str], field_prefix: str | None = None, drop_algo_prefix: bool = False):
         """
         :param valid_hash_algos: A list of valid hash algorithms that are supported by the table.
         :param field_prefix: The prefix to use for the new detection items.
@@ -143,6 +145,13 @@ class BaseHashesValuesTransformation(DetectionItemTransformation):
 class SetQueryTableStateTransformation(Transformation):
     """Sets rule query table in pipeline state query_table key
 
+    The following priority is used to determine the value to set:
+    1) The value provided in the val argument
+    2) If the query_table is already set in the pipeline state, use that value (e.g. set in a previous pipeline, like via YAML in sigma-cli for user-defined query tables)
+    3) If the rule's logsource category is present in the category_to_table_mappings dictionary, use that value
+    4) If the rule has an EventID, use the table name from the eventid_to_table_mappings dictionary
+    5) If none of the above are present, raise an error
+
     :param val: The table name to set in the pipeline state. If not provided, the table name will be determined from the rule's logsource category.
     :param category_to_table_mappings: A dictionary mapping logsource categories to table names. If not provided, the default category_to_table_mappings will be used.
 
@@ -150,16 +159,57 @@ class SetQueryTableStateTransformation(Transformation):
 
     val: Any = None
     category_to_table_mappings: Dict[str, Any] = field(default_factory=dict)
+    event_id_category_to_table_mappings: Dict[str, Any] = field(default_factory=dict)
+
+    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[str]:
+        """
+        Apply transformation on detection item. We need to set the query_table pipeline state key, so we return the table name string based on the EventID or EventCode.
+        """
+        if detection_item.field == "EventID" or detection_item.field == "EventCode":
+            for value in detection_item.value:
+                if table_name := get_table_from_eventid(
+                    int(value.to_plain()), self.event_id_category_to_table_mappings
+                ):
+                    return table_name
+        return None
+
+    def apply_detection(self, detection: SigmaDetection) -> Optional[str]:
+        """Apply transformation on detection. We need to set the event_type custom attribute on the rule, so we return the event_type string."""
+        for i, detection_item in enumerate(detection.detection_items):
+            if isinstance(detection_item, SigmaDetection):  # recurse into nested detection items
+                self.apply_detection(detection_item)
+            else:
+                if (
+                    self.processing_item is None
+                    or self.processing_item.match_detection_item(self._pipeline, detection_item)
+                ) and (r := self.apply_detection_item(detection_item)) is not None:
+                    self.processing_item_applied(detection.detection_items[i])
+                    return r
 
     def apply(self, pipeline: "ProcessingPipeline", rule: "SigmaRule") -> None:  # type: ignore  # noqa: F821
         super().apply(pipeline, rule)
+
+        # Init table_name to None, will be set in the following if statements
+        table_name = None
+        # Set table_name based on the following priority:
+        # 1) The value provided in the val argument
         if self.val:
             table_name = self.val
-        elif pipeline.state.get("query_table"):  # If query_table is provided in another pipeline, like via YAML in sigma-cli
+        # 2) If the query_table is already set in the pipeline state, use that value (e.g. set in a previous pipeline, like via YAML in sigma-cli for user-defined query tables)
+        elif pipeline.state.get("query_table"):
             table_name = pipeline.state.get("query_table")
-        else:
+        # 3) If the rule's logsource category is present in the category_to_table_mappings dictionary, use that value
+        elif rule.logsource.category:
             category = rule.logsource.category
             table_name = self.category_to_table_mappings.get(category)
+        # 4) Check if the rule has an EventID, use the table name from the eventid_to_table_mappings dictionary
+        else:
+            for section_title, detection in rule.detection.detections.items():
+                # We only want event types from selection sections, not filters
+                if re.match(r"^sel.*", section_title.lower()):
+                    if (r := self.apply_detection(detection)) is not None:
+                        table_name = r
+                        break
 
         if table_name:
             if isinstance(table_name, list):
@@ -167,7 +217,12 @@ class SetQueryTableStateTransformation(Transformation):
             pipeline.state["query_table"] = table_name
         else:
             raise SigmaTransformationError(
-                f"Unable to determine table name for category: {category}, category is not yet supported by the pipeline.  Please provide the 'query_table' parameter to the pipeline instead."
+                f"Unable to determine table name from rule.  The query table is determined in the following order of priority:\n"
+                f"  1) The value provided to processing pipeline's query_table parameter, if using a Python script.\n"
+                f"  2) If the query_table is already set in the pipeline state, such as from a custom user-defined pipeline if using sigma-cli.\n"
+                f"  3) If the rule's logsource category is present in the pipeline's category_to_table_mappings dictionary in mappings.py, use that value.\n"
+                f"  4) If the rule has an EventID, use the table name from the pipeline's eventid_to_table_mappings dictionary in mappings.py.\n"
+                f"For more details, see https://github.com/AttackIQ/pySigma-backend-kusto/blob/main/README.md#%EF%B8%8F-custom-table-names-new-in-030-beta."
             )
 
 

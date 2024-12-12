@@ -1,5 +1,5 @@
 import re
-from typing import ClassVar, Dict, Pattern, Tuple, Union
+from typing import ClassVar, Dict, Pattern, Tuple, Type, Union
 
 from sigma.conditions import (
     ConditionAND,
@@ -11,7 +11,7 @@ from sigma.conditions import (
 from sigma.conversion.base import TextQueryBackend
 from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
-from sigma.types import SigmaCompareExpression, SigmaString, SpecialChars
+from sigma.types import SigmaCompareExpression, SigmaNumber, SigmaString, SpecialChars
 
 
 class KustoBackend(TextQueryBackend):
@@ -28,7 +28,7 @@ class KustoBackend(TextQueryBackend):
 
     # Operator precedence
     parenthesize = True
-    precedence: ClassVar[Tuple[ConditionItem, ConditionItem, ConditionItem]] = (ConditionNOT, ConditionAND, ConditionOR)
+    precedence: ClassVar[Tuple[Type[ConditionItem], Type[ConditionItem], Type[ConditionItem]]] = (ConditionNOT, ConditionAND, ConditionOR)
     group_expression: ClassVar[str] = (
         "({expr})"  # Expression for precedence override grouping as format string with {expr} placeholder
     )
@@ -75,7 +75,7 @@ class KustoBackend(TextQueryBackend):
     startswith_expression: ClassVar[str] = "{field} startswith {value}"
     endswith_expression: ClassVar[str] = "{field} endswith {value}"
     contains_expression: ClassVar[str] = "{field} contains {value}"
-    wildcard_match_expression: ClassVar[str] = (
+    wildcard_match_expression: ClassVar[str | None] = (
         None  # Special expression if wildcards can't be matched with the eq_token operator
     )
 
@@ -84,7 +84,7 @@ class KustoBackend(TextQueryBackend):
         '{field} matches regex "{regex}"'  # Regular expression query as format string with placeholders {field} and {regex}
     )
     re_escape_char: ClassVar[str] = "\\"  # Character used for escaping in regular expressions
-    re_escape: ClassVar[Tuple[str]] = ()  # List of strings that are escaped
+    re_escape: ClassVar[Tuple[str, ...]] = ()  # List of strings that are escaped
     re_escape_escape_char: bool = True  # If True, the escape character is also escaped
 
     # cidr expressions
@@ -172,20 +172,24 @@ class KustoBackend(TextQueryBackend):
         expression
         """
 
-        field = self.escape_and_quote_field(cond.args[0].field)
+        field = self.escape_and_quote_field(cond.args[0].field)  # type: ignore
         op1 = self.or_in_operator if isinstance(cond, ConditionOR) else self.and_in_operator
         op2 = self.or_token if isinstance(cond, ConditionOR) else self.and_token
         list_nonwildcard = self.list_separator.join(
             [
                 self.convert_value_str(arg.value, state)
                 for arg in cond.args
-                if (isinstance(arg.value, SigmaString) and not arg.value.contains_special())
-                or not isinstance(arg.value, SigmaString)
+                if isinstance(arg, ConditionFieldEqualsValueExpression)
+                and (isinstance(arg.value, SigmaString) and not arg.value.contains_special())
             ]
         )
         list_wildcards = [
-            arg.value for arg in cond.args if isinstance(arg.value, SigmaString) and arg.value.contains_special()
+            arg.value for arg in cond.args 
+            if isinstance(arg, ConditionFieldEqualsValueExpression) 
+            and isinstance(arg.value, SigmaString) 
+            and arg.value.contains_special()
         ]
+        as_in_expr = ""
         as_in_expr = ""
         # Convert as_in and wildcard values separately
         if list_nonwildcard:
@@ -199,7 +203,7 @@ class KustoBackend(TextQueryBackend):
                     expr = f"{self.token_separator}{self.and_token}{self.token_separator}".join(
                         [
                             self.contains_expression.format(
-                                field=field, value=self.convert_value_str(SigmaString(x), state)
+                                field=field, value=self.convert_value_str(SigmaString(str(x)), state)
                             )
                             for x in arg.s
                             if not isinstance(x, SpecialChars)
@@ -221,9 +225,9 @@ class KustoBackend(TextQueryBackend):
         arg = cond.args[0]
         try:
             if arg.__class__ in self.precedence:  # group if AND or OR condition is negated
-                return self.not_token + "(" + self.convert_condition_group(arg, state) + ")"
+                return self.not_token + "(" + str(self.convert_condition_group(arg, state)) + ")"  # type: ignore
             else:
-                expr = self.convert_condition(arg, state)
+                expr = self.convert_condition(arg, state)  # type: ignore
                 if isinstance(expr, DeferredQueryExpression):  # negate deferred expression and pass it to parent
                     return expr.negate()
                 else:  # convert negated expression to string
@@ -231,8 +235,10 @@ class KustoBackend(TextQueryBackend):
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
 
-    def convert_value_str(self, s: SigmaString, state: ConversionState) -> str:
+    def convert_value_str(self, s: SigmaString | SigmaNumber, state: ConversionState) -> str:
         """Convert a SigmaString into a plain string which can be used in query."""
+        if not isinstance(s, SigmaString):
+            return str(s)
         converted = super().convert_value_str(s, state)
         # If we have a wildcard in a string, we need to un-escape it
         # See issue #13
