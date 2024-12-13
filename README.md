@@ -12,12 +12,28 @@
 
 - [pySigma Kusto Query Language (KQL) Backend](#pysigma-kusto-query-language-kql-backend)
   - [📖 Overview](#-overview)
+    - [🔑 Key Features](#-key-features)
+    - [🧑‍💻 Maintainer](#-maintainer)
   - [🚀 Quick Start](#-quick-start)
   - [📘 Usage](#-usage)
+    - [🖥️ sigma-cli](#️-sigma-cli)
+    - [🐍 Python Script](#-python-script)
   - [🛠️ Advanced Features](#️-advanced-features)
+    - [🔄 Pipeline \& Backend Args (New in 0.2.0)](#-pipeline--backend-args-new-in-020)
+    - [🗃️ Custom Table Names (New in 0.3.0) (Beta)](#️-custom-table-names-new-in-030-beta)
   - [🔄 Processing Pipelines](#-processing-pipelines)
+    - [📊 Rule Support](#-rule-support)
+    - [🖥️ Commonly Supported Categories](#️-commonly-supported-categories)
   - [🧪 Custom Transformations](#-custom-transformations)
+    - [📊 Custom Postprocessing Item](#-custom-postprocessing-item)
   - [❓Frequently Asked Questions](#frequently-asked-questions)
+    - [How do I set the table name for a rule?](#how-do-i-set-the-table-name-for-a-rule)
+    - [How do I set the table name for a rule in YAML?](#how-do-i-set-the-table-name-for-a-rule-in-yaml)
+    - [How is the table name determined for a rule?](#how-is-the-table-name-determined-for-a-rule)
+    - [How are field mappings determined for a rule?](#how-are-field-mappings-determined-for-a-rule)
+    - [What tables are supported for each pipeline?](#what-tables-are-supported-for-each-pipeline)
+    - [I am receiving an `Invalid SigmaDetectionItem field name encountered` error. What does this mean?](#i-am-receiving-an-invalid-sigmadetectionitem-field-name-encountered-error-what-does-this-mean)
+    - [My query\_table or custom field mapping isn't working](#my-query_table-or-custom-field-mapping-isnt-working)
   - [🤝 Contributing](#-contributing)
   - [📄 License](#-license)
 
@@ -218,6 +234,7 @@ Rules are supported if either:
 
 - A valid table name is supplied via the `query_table` parameter or YAML pipeline
 - The rule's logsource category is supported and mapped in the pipeline's `mappings.py` file
+- The rule has an `EventID` or `EventCode` field in the `detection` section, and the eventid is present in the pipeline's `eventid_to_table_mappings` dictionary
 
 ### 🖥️ Commonly Supported Categories
 
@@ -295,7 +312,12 @@ sigma convert -t kusto -p microsoft_xdr -p test_table_name_pipeline.yml test_rul
 
 ### How is the table name determined for a rule?
 
-The table name is set by the `SetQueryTableStateTransformation` transformation, which is the first transformation in each pipeline. It will use the `query_table` parameter if it is set by either a YAML pipeline or by passing the parameter to the pipeline in a Python script, otherwise it will select the table based on the rule category.  The table name to rule category logic is defined in each pipeline's `mappings.py` file.
+The table name is set by the `SetQueryTableStateTransformation` transformation, which is the first transformation in each pipeline. The `query_table` is set to the pipeline's `state` parameter with the following priority:
+1. The `query_table` parameter passed to the pipeline, if using a Python script/code.
+2. The `query_table` parameter passed to the pipeline in a custom YAML pipeline, if using sigma-cli.
+3. The `logsource.category` field in the rule, if the category is present in the pipeline's `category_to_table_mappings` dictionary.
+4. The `EventID` or `EventCode` field, if present in the rule's `detection` section, and if the eventid is present in the pipeline's `eventid_to_table_mappings` dictionary.
+5. If none of the above are present, an error is raised.
 
 ### How are field mappings determined for a rule?
 
