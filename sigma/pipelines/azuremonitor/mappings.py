@@ -100,6 +100,7 @@ AZURE_MONITOR_FIELD_MAPPINGS = AzureMonitorFieldMappings(
             "Category": "EventSourceName",
             "Hashes": "FileHash",
             "TargetObject": "ObjectName",
+            "AccessList": "AccessList",
         },
         "SigninLogs": {
             "User": "UserPrincipalName",
