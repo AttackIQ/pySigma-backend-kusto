@@ -121,6 +121,7 @@ MICROSOFT_XDR_FIELD_MAPPINGS = MicrosoftXDRFieldMappings(
             "sha256": "SHA256",
             "md5": "MD5",
             "ObjectName": "FolderPath",
+            "IntegrityLevel": "InitiatingProcessIntegrityLevel",
         },
         "DeviceNetworkEvents": {  # network_connection, Sysmon EventID 3 -> DeviceNetworkEvents table
             # 'ProcessGuid': ?,
