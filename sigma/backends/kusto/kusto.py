@@ -116,6 +116,12 @@ class KustoBackend(TextQueryBackend):
     field_null_expression: ClassVar[str] = (
         "isnull({field})"  # Expression for field has null value as format string with {field} placeholder for field name
     )
+    field_exists_expression: ClassVar[str] = (
+        "isnotempty({field})"  # Expression for field exists as format string with {field} placeholder for field name
+    )
+    field_not_exists_expression: ClassVar[str] = (
+        "isempty({field})"  # Expression for field does not exist as format string with {field} placeholder for field name
+    )
 
     # Field value in list, e.g. "field in (value list)" or "field containsall (value list)"
     convert_or_as_in: ClassVar[bool] = True  # Convert OR as in-expression
