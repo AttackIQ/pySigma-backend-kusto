@@ -156,13 +156,19 @@ def test_kusto_regex_query(microsoft365defender_backend: KustoBackend):
                 product: windows
             detection:
                 sel:
-                    CommandLine|re: foo.*bar
+                    CommandLine|re: 
+                        - foo.*bar
+                        - -(W|R)\s?(\s|"|')([0-9a-fA-F]{2}\s?){2,20}(\s|"|')
                     ProcessId: foo
                 condition: sel
         """
             )
         )
-        == ['DeviceProcessEvents\n| where ProcessCommandLine matches regex "foo.*bar" and ProcessId =~ "foo"']
+        == [
+            'DeviceProcessEvents\n| where (ProcessCommandLine matches regex "foo.*bar" or '
+            'ProcessCommandLine matches regex "-(W|R)\\\\s?(\\\\s|\\"|\')([0-9a-fA-F]{2}\\\\s?){2,20}(\\\\s|\\"|\')") and '
+            'ProcessId =~ "foo"'
+            ]
     )
 
 
