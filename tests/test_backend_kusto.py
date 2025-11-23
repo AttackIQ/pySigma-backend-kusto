@@ -452,3 +452,45 @@ level: high
             'TargetObject endswith "\\\\COMPlus_ETWFlags") and (Details in~ ("0", "DWORD (0x00000000)")))'
         ]
     )
+
+
+def test_kusto_exists_expression(microsoft365defender_backend: KustoBackend):
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
+            title: Test Exists
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|exists: true
+                condition: sel
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where isnotempty(ProcessCommandLine)']
+    )
+
+
+def test_kusto_not_exists_expression(microsoft365defender_backend: KustoBackend):
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
+            title: Test Not Exists
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    CommandLine|exists: false
+                condition: sel
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where isempty(ProcessCommandLine)']
+    )
