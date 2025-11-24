@@ -1049,3 +1049,111 @@ def test_microsoft_xdr_hashes_field_transformation():
     assert len(result) == 1
     # Should have hash fields
     assert 'MD5' in result[0] or 'SHA256' in result[0]
+
+
+def test_microsoft_xdr_username_without_domain_separator():
+    """
+    Test username transformation when username has no domain separator.
+    Edge case for SplitDomainUserTransformation line 47-58.
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rule_yaml = """
+        title: Username Without Domain
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                User: administrator
+            condition: sel
+    """
+
+    result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
+    assert len(result) == 1
+    assert 'DeviceProcessEvents' in result[0]
+    # Should handle username without domain separator
+    assert 'AccountName' in result[0] or 'InitiatingProcessAccountName' in result[0]
+    assert 'administrator' in result[0]
+
+
+def test_microsoft_xdr_postprocessing_factory_pattern():
+    """
+    Test that postprocessing items are created fresh for each pipeline.
+    v1.0 Breaking Change #12: Ensures factory pattern for postprocessing items.
+    """
+    from sigma.pipelines.kusto_common.postprocessing import create_prepend_query_table_item
+
+    item1 = create_prepend_query_table_item()
+    item2 = create_prepend_query_table_item()
+
+    # Should be different instances
+    assert item1 is not item2
+    assert item1.transformation is not item2.transformation
+
+
+def test_microsoft_xdr_pipeline_reuse_state_reset():
+    """
+    Test that pipeline state resets correctly across multiple rule conversions.
+    v1.0 Breaking Change #11: Pipeline initialized once, state resets per apply().
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rules_yaml = """
+---
+title: Process Rule 1
+status: test
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    sel:
+        CommandLine: whoami.exe
+    condition: sel
+---
+title: Registry Rule
+status: test
+logsource:
+    category: registry_event
+    product: windows
+detection:
+    sel:
+        TargetObject: "HKLM\\\\Software\\\\Test"
+    condition: sel
+---
+title: File Event Rule
+status: test
+logsource:
+    category: file_event
+    product: windows
+detection:
+    sel:
+        TargetFilename: "test.exe"
+    condition: sel
+---
+title: Process Rule 2
+status: test
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    sel:
+        CommandLine: cmd.exe
+    condition: sel
+    """
+
+    collection = SigmaCollection.from_yaml(rules_yaml)
+    results = backend.convert(collection)
+
+    # Verify correct tables are used and state resets properly between rules
+    assert len(results) == 4
+    assert 'DeviceProcessEvents' in results[0]
+    assert 'whoami.exe' in results[0]
+    assert 'DeviceRegistryEvents' in results[1]
+    assert 'RegistryKey' in results[1]
+    assert 'DeviceFileEvents' in results[2]
+    assert 'FolderPath' in results[2]  # Field is mapped to FolderPath
+    assert 'test.exe' in results[2]
+    assert 'DeviceProcessEvents' in results[3]
+    assert 'cmd.exe' in results[3]

@@ -583,3 +583,111 @@ def test_azure_monitor_pipeline_state_isolation():
 
     # Both should produce the same result
     assert result1 == result2
+
+
+def test_azure_monitor_pipeline_reuse_multiple_backends():
+    """
+    Test that a single pipeline can be used to create multiple backend instances.
+    v1.0 Breaking Change #12: Ensures factory pattern works correctly.
+    """
+    pipeline = azure_monitor_pipeline()
+
+    # Create two backends with the same pipeline instance
+    backend1 = KustoBackend(processing_pipeline=pipeline)
+    backend2 = KustoBackend(processing_pipeline=pipeline)
+
+    rule = SigmaRule.from_yaml("""
+        title: Test Pipeline Reuse
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                CommandLine: test.exe
+            condition: sel
+    """)
+
+    # Both should work independently without state conflicts
+    result1 = backend1.convert_rule(rule)
+    result2 = backend2.convert_rule(rule)
+
+    assert result1 == result2
+    assert len(result1) == 1
+    assert 'SecurityEvent' in result1[0]
+    assert 'test.exe' in result1[0]
+
+
+def test_azure_monitor_no_category_no_eventid():
+    """
+    Test error when rule has no category and no EventID.
+    Ensures proper error handling with source tracking (v1.0).
+    """
+    backend = KustoBackend(processing_pipeline=azure_monitor_pipeline())
+
+    rule_yaml = """
+        title: No Category or EventID
+        status: test
+        logsource:
+            product: windows
+        detection:
+            sel:
+                CommandLine: test
+            condition: sel
+    """
+
+    with pytest.raises(SigmaTransformationError, match="Unable to determine table name"):
+        backend.convert(SigmaCollection.from_yaml(rule_yaml))
+
+
+def test_azure_monitor_state_reset_multiple_categories():
+    """
+    Test that pipeline state resets correctly between rules with different categories.
+    v1.0 Breaking Change #11: Ensures state management works across rule conversions.
+    """
+    backend = KustoBackend(processing_pipeline=azure_monitor_pipeline())
+
+    rules_yaml = """
+---
+title: Process Rule
+status: test
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    sel:
+        CommandLine: whoami.exe
+    condition: sel
+---
+title: Network Rule
+status: test
+logsource:
+    category: network_connection
+    product: windows
+detection:
+    sel:
+        DestinationPort: 443
+    condition: sel
+---
+title: Another Process Rule
+status: test
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    sel:
+        CommandLine: cmd.exe
+    condition: sel
+    """
+
+    collection = SigmaCollection.from_yaml(rules_yaml)
+    results = backend.convert(collection)
+
+    # Verify correct tables are used and state resets properly
+    assert len(results) == 3
+    assert 'SecurityEvent' in results[0]
+    assert 'whoami.exe' in results[0]
+    assert 'SecurityEvent' in results[1]
+    assert 'DestinationPort' in results[1]
+    assert 'SecurityEvent' in results[2]
+    assert 'cmd.exe' in results[2]
