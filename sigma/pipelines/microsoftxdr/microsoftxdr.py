@@ -104,7 +104,9 @@ def _create_replacement_items():
         ),
         ProcessingItem(
             identifier="microsoft_xdr_registry_key_replace_hkcr",
-            transformation=ReplaceStringTransformation(regex=r"(?i)(^HKCR)", replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"),
+            transformation=ReplaceStringTransformation(
+                regex=r"(?i)(^HKCR)", replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"
+            ),
             field_name_conditions=[IncludeFieldCondition(["RegistryKey", "PreviousRegistryKey"])],
         ),
         ProcessingItem(
@@ -131,6 +133,7 @@ def _create_replacement_items():
             rule_conditions=[LogsourceCondition(category="network_connection")],
         ),
     ]
+
 
 def _create_parent_image_items():
     """ParentImage -> InitiatingProcessParentFileName transformation items"""
@@ -159,6 +162,7 @@ def _create_parent_image_items():
             rule_condition_negation=True,
         ),
     ]
+
 
 def _get_valid_fields(table_name):
     """Get valid fields for a given table name"""

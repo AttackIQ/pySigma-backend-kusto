@@ -88,7 +88,7 @@ class KustoBackend(TextQueryBackend):
         '{field} matches regex "{regex}"'  # Regular expression query as format string with placeholders {field} and {regex}
     )
     re_escape_char: ClassVar[str] = "\\"  # Character used for escaping in regular expressions
-    re_escape: ClassVar[Tuple[str, ...]] = ('"')  # List of strings that are escaped
+    re_escape: ClassVar[Tuple[str, ...]] = '"'  # List of strings that are escaped
     re_escape_escape_char: bool = True  # If True, the escape character is also escaped
 
     # cidr expressions

@@ -298,14 +298,14 @@ def test_azure_monitor_multiple_rules_same_backend(azure_backend):
     # Convert first rule
     result1 = azure_backend.convert(SigmaCollection.from_yaml(rule1))
     assert len(result1) == 1
-    assert 'SecurityEvent' in result1[0]
-    assert 'CommandLine' in result1[0]
+    assert "SecurityEvent" in result1[0]
+    assert "CommandLine" in result1[0]
 
     # Convert second rule with same backend - should work and use different table
     result2 = azure_backend.convert(SigmaCollection.from_yaml(rule2))
     assert len(result2) == 1
-    assert 'SecurityEvent' in result2[0]
-    assert 'DestinationPort' in result2[0]
+    assert "SecurityEvent" in result2[0]
+    assert "DestinationPort" in result2[0]
 
 
 def test_azure_monitor_processing_item_applied_tracking(azure_backend):
@@ -350,7 +350,7 @@ def test_azure_monitor_field_validation_with_generic_mappings(azure_backend):
 
     result = azure_backend.convert(SigmaCollection.from_yaml(rule_yaml))
     assert len(result) == 1
-    assert 'CommandLine' in result[0]
+    assert "CommandLine" in result[0]
 
 
 def test_azure_monitor_multiple_rules_in_collection(azure_backend):
@@ -386,8 +386,8 @@ detection:
 
     results = azure_backend.convert(collection)
     assert len(results) == 2
-    assert 'CommandLine' in results[0]
-    assert 'DestinationPort' in results[1]
+    assert "CommandLine" in results[0]
+    assert "DestinationPort" in results[1]
 
 
 def test_azure_monitor_query_table_state_priority():
@@ -411,8 +411,8 @@ def test_azure_monitor_query_table_state_priority():
     """
 
     result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
-    assert 'CustomTable' in result[0]
-    assert 'SecurityEvent' not in result[0]
+    assert "CustomTable" in result[0]
+    assert "SecurityEvent" not in result[0]
 
 
 def test_azure_monitor_invalid_field_after_valid_conversion(azure_backend):
@@ -508,10 +508,10 @@ def test_azure_monitor_different_logsource_categories_same_backend(azure_backend
 
     # Both should use SecurityEvent table
     result1 = azure_backend.convert(SigmaCollection.from_yaml(process_rule))
-    assert 'SecurityEvent' in result1[0]
+    assert "SecurityEvent" in result1[0]
 
     result2 = azure_backend.convert(SigmaCollection.from_yaml(network_rule))
-    assert 'SecurityEvent' in result2[0]
+    assert "SecurityEvent" in result2[0]
 
 
 def test_azure_monitor_eventid_based_table_mapping(azure_backend):
@@ -533,7 +533,7 @@ def test_azure_monitor_eventid_based_table_mapping(azure_backend):
     # EventID 4688 is process creation, should map to SecurityEvent
     result = azure_backend.convert(SigmaCollection.from_yaml(rule_yaml))
     assert len(result) == 1
-    assert 'SecurityEvent' in result[0]
+    assert "SecurityEvent" in result[0]
 
 
 def test_azure_monitor_correlation_rule_compatibility(azure_backend):
@@ -596,7 +596,8 @@ def test_azure_monitor_pipeline_reuse_multiple_backends():
     backend1 = KustoBackend(processing_pipeline=pipeline)
     backend2 = KustoBackend(processing_pipeline=pipeline)
 
-    rule = SigmaRule.from_yaml("""
+    rule = SigmaRule.from_yaml(
+        """
         title: Test Pipeline Reuse
         status: test
         logsource:
@@ -606,7 +607,8 @@ def test_azure_monitor_pipeline_reuse_multiple_backends():
             sel:
                 CommandLine: test.exe
             condition: sel
-    """)
+    """
+    )
 
     # Both should work independently without state conflicts
     result1 = backend1.convert_rule(rule)
@@ -614,8 +616,8 @@ def test_azure_monitor_pipeline_reuse_multiple_backends():
 
     assert result1 == result2
     assert len(result1) == 1
-    assert 'SecurityEvent' in result1[0]
-    assert 'test.exe' in result1[0]
+    assert "SecurityEvent" in result1[0]
+    assert "test.exe" in result1[0]
 
 
 def test_azure_monitor_no_category_no_eventid():
@@ -685,9 +687,9 @@ detection:
 
     # Verify correct tables are used and state resets properly
     assert len(results) == 3
-    assert 'SecurityEvent' in results[0]
-    assert 'whoami.exe' in results[0]
-    assert 'SecurityEvent' in results[1]
-    assert 'DestinationPort' in results[1]
-    assert 'SecurityEvent' in results[2]
-    assert 'cmd.exe' in results[2]
+    assert "SecurityEvent" in results[0]
+    assert "whoami.exe" in results[0]
+    assert "SecurityEvent" in results[1]
+    assert "DestinationPort" in results[1]
+    assert "SecurityEvent" in results[2]
+    assert "cmd.exe" in results[2]

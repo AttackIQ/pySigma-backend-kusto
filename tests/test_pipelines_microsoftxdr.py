@@ -969,8 +969,8 @@ def test_microsoft_xdr_username_transformation_with_domain():
     result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
     assert len(result) == 1
     # Should have both AccountName and AccountDomain conditions
-    assert 'AccountName' in result[0]
-    assert 'AccountDomain' in result[0]
+    assert "AccountName" in result[0]
+    assert "AccountDomain" in result[0]
 
 
 def test_microsoft_xdr_field_mapping_transformation_order():
@@ -1020,8 +1020,8 @@ def test_microsoft_xdr_registry_key_replacement_transformation():
     result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
     assert len(result) == 1
     # HKLM should be replaced with HKEY_LOCAL_MACHINE
-    assert 'HKEY_LOCAL_MACHINE' in result[0]
-    assert 'HKLM' not in result[0] or 'HKEY_LOCAL_MACHINE\\\\Software' in result[0]
+    assert "HKEY_LOCAL_MACHINE" in result[0]
+    assert "HKLM" not in result[0] or "HKEY_LOCAL_MACHINE\\\\Software" in result[0]
 
 
 def test_microsoft_xdr_hashes_field_transformation():
@@ -1048,7 +1048,7 @@ def test_microsoft_xdr_hashes_field_transformation():
     result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
     assert len(result) == 1
     # Should have hash fields
-    assert 'MD5' in result[0] or 'SHA256' in result[0]
+    assert "MD5" in result[0] or "SHA256" in result[0]
 
 
 def test_microsoft_xdr_username_without_domain_separator():
@@ -1072,10 +1072,10 @@ def test_microsoft_xdr_username_without_domain_separator():
 
     result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
     assert len(result) == 1
-    assert 'DeviceProcessEvents' in result[0]
+    assert "DeviceProcessEvents" in result[0]
     # Should handle username without domain separator
-    assert 'AccountName' in result[0] or 'InitiatingProcessAccountName' in result[0]
-    assert 'administrator' in result[0]
+    assert "AccountName" in result[0] or "InitiatingProcessAccountName" in result[0]
+    assert "administrator" in result[0]
 
 
 def test_microsoft_xdr_postprocessing_factory_pattern():
@@ -1148,12 +1148,12 @@ detection:
 
     # Verify correct tables are used and state resets properly between rules
     assert len(results) == 4
-    assert 'DeviceProcessEvents' in results[0]
-    assert 'whoami.exe' in results[0]
-    assert 'DeviceRegistryEvents' in results[1]
-    assert 'RegistryKey' in results[1]
-    assert 'DeviceFileEvents' in results[2]
-    assert 'FolderPath' in results[2]  # Field is mapped to FolderPath
-    assert 'test.exe' in results[2]
-    assert 'DeviceProcessEvents' in results[3]
-    assert 'cmd.exe' in results[3]
+    assert "DeviceProcessEvents" in results[0]
+    assert "whoami.exe" in results[0]
+    assert "DeviceRegistryEvents" in results[1]
+    assert "RegistryKey" in results[1]
+    assert "DeviceFileEvents" in results[2]
+    assert "FolderPath" in results[2]  # Field is mapped to FolderPath
+    assert "test.exe" in results[2]
+    assert "DeviceProcessEvents" in results[3]
+    assert "cmd.exe" in results[3]

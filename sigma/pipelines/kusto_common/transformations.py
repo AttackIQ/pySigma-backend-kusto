@@ -174,10 +174,9 @@ class SetQueryTableStateTransformation(Transformation):
             if isinstance(detection_item, SigmaDetection):  # recurse into nested detection items
                 self.apply_detection(detection_item)
             else:
-                if (
-                    self.processing_item is None
-                    or self.processing_item.match_detection_item(detection_item)
-                ) and (r := self.apply_detection_item(detection_item)) is not None:
+                if (self.processing_item is None or self.processing_item.match_detection_item(detection_item)) and (
+                    r := self.apply_detection_item(detection_item)
+                ) is not None:
                     self.processing_item_applied(detection.detection_items[i])
                     return r
 

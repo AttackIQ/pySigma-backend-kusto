@@ -39,6 +39,7 @@ from .transformations import (
 
 SENTINEL_ASIM_SCHEMA = create_schema(SentinelASIMSchema, SENTINEL_ASIM_TABLES)
 
+
 ## Factory functions to create fresh ProcessingItems for each pipeline instance
 def _create_drop_eventid_item():
     """Drop EventID field"""
@@ -73,66 +74,69 @@ def _create_generic_field_mappings_item():
 def _create_replacement_items():
     """Field Value Replacements ProcessingItems"""
     return [
-    # Sysmon uses abbreviations in RegistryKey values, replace with full key names as the DeviceRegistryEvents schema
-    # expects them to be
-    # Note: Ensure this comes AFTER field mapping renames, as we're specifying DeviceRegistryEvent fields
-    #
-    # Do this one first, or else the HKLM only one will replace HKLM and mess up the regex
-    ProcessingItem(
-        identifier="sentinel_asim_registry_key_replace_currentcontrolset",
-        transformation=ReplaceStringTransformation(
-            regex=r"(?i)(^HKLM\\SYSTEM\\CurrentControlSet)",
-            replacement=r"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet001",
+        # Sysmon uses abbreviations in RegistryKey values, replace with full key names as the DeviceRegistryEvents schema
+        # expects them to be
+        # Note: Ensure this comes AFTER field mapping renames, as we're specifying DeviceRegistryEvent fields
+        #
+        # Do this one first, or else the HKLM only one will replace HKLM and mess up the regex
+        ProcessingItem(
+            identifier="sentinel_asim_registry_key_replace_currentcontrolset",
+            transformation=ReplaceStringTransformation(
+                regex=r"(?i)(^HKLM\\SYSTEM\\CurrentControlSet)",
+                replacement=r"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet001",
+            ),
+            field_name_conditions=[IncludeFieldCondition(["RegistryKey", "PreviousRegistryKey"])],
         ),
-        field_name_conditions=[IncludeFieldCondition(["RegistryKey", "PreviousRegistryKey"])],
-    ),
-    ProcessingItem(
-        identifier="sentinel_asim_registry_key_replace_hklm",
-        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKLM)", replacement=r"HKEY_LOCAL_MACHINE"),
-        field_name_conditions=[IncludeFieldCondition(["RegistryKey", "RegistryPreviousKey"])],
-    ),
-    ProcessingItem(
-        identifier="sentinel_asim_registry_key_replace_hku",
-        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKU)", replacement=r"HKEY_USERS"),
-        field_name_conditions=[IncludeFieldCondition(["RegistryKey", "RegistryPreviousKey"])],
-    ),
-    ProcessingItem(
-        identifier="sentinel_asim_registry_key_replace_hkcr",
-        transformation=ReplaceStringTransformation(regex=r"(?i)(^HKCR)", replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"),
-        field_name_conditions=[IncludeFieldCondition(["RegistryKey", "RegistryPreviousKey"])],
-    ),
-    ProcessingItem(
-        identifier="sentinel_asim_registry_actiontype_value",
-        transformation=RegistryActionTypeValueTransformation(),
-        field_name_conditions=[IncludeFieldCondition(["EventType"])],
-    ),
-    # Processing item to transform the Hashes field in the SecurityEvent table to get rid of the hash algorithm prefix in each value
-    ProcessingItem(
-        identifier="sentinel_asim_processcreate_hashes_field_values",
-        transformation=ProcessCreateHashesValuesTransformation(),
-        field_name_conditions=[IncludeFieldCondition(["Hashes"])],
-        rule_conditions=[RuleProcessingStateCondition("query_table", "imProcessCreate")],
-    ),
-    ProcessingItem(
-        identifier="sentinel_asim_fileevent_hashes_field_values",
-        transformation=FileEventHashesValuesTransformation(),
-        field_name_conditions=[IncludeFieldCondition(["Hashes"])],
-        rule_conditions=[RuleProcessingStateCondition("query_table", "imFileEvent")],
-    ),
-    ProcessingItem(
-        identifier="sentinel_asim_webrequest_hashes_field_values",
-        transformation=WebSessionHashesValuesTransformation(),
-        field_name_conditions=[IncludeFieldCondition(["Hashes"])],
-        rule_conditions=[RuleProcessingStateCondition("query_table", "imWebSession")],
-    ),
-    # Processing item to essentially ignore initiated field
-    ProcessingItem(
-        identifier="sentinel_asim_network_initiated_field",
-        transformation=DropDetectionItemTransformation(),
-        field_name_conditions=[IncludeFieldCondition(["Initiated"])],
-        rule_conditions=[LogsourceCondition(category="network_connection")],
-    ),
-]
+        ProcessingItem(
+            identifier="sentinel_asim_registry_key_replace_hklm",
+            transformation=ReplaceStringTransformation(regex=r"(?i)(^HKLM)", replacement=r"HKEY_LOCAL_MACHINE"),
+            field_name_conditions=[IncludeFieldCondition(["RegistryKey", "RegistryPreviousKey"])],
+        ),
+        ProcessingItem(
+            identifier="sentinel_asim_registry_key_replace_hku",
+            transformation=ReplaceStringTransformation(regex=r"(?i)(^HKU)", replacement=r"HKEY_USERS"),
+            field_name_conditions=[IncludeFieldCondition(["RegistryKey", "RegistryPreviousKey"])],
+        ),
+        ProcessingItem(
+            identifier="sentinel_asim_registry_key_replace_hkcr",
+            transformation=ReplaceStringTransformation(
+                regex=r"(?i)(^HKCR)", replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"
+            ),
+            field_name_conditions=[IncludeFieldCondition(["RegistryKey", "RegistryPreviousKey"])],
+        ),
+        ProcessingItem(
+            identifier="sentinel_asim_registry_actiontype_value",
+            transformation=RegistryActionTypeValueTransformation(),
+            field_name_conditions=[IncludeFieldCondition(["EventType"])],
+        ),
+        # Processing item to transform the Hashes field in the SecurityEvent table to get rid of the hash algorithm prefix in each value
+        ProcessingItem(
+            identifier="sentinel_asim_processcreate_hashes_field_values",
+            transformation=ProcessCreateHashesValuesTransformation(),
+            field_name_conditions=[IncludeFieldCondition(["Hashes"])],
+            rule_conditions=[RuleProcessingStateCondition("query_table", "imProcessCreate")],
+        ),
+        ProcessingItem(
+            identifier="sentinel_asim_fileevent_hashes_field_values",
+            transformation=FileEventHashesValuesTransformation(),
+            field_name_conditions=[IncludeFieldCondition(["Hashes"])],
+            rule_conditions=[RuleProcessingStateCondition("query_table", "imFileEvent")],
+        ),
+        ProcessingItem(
+            identifier="sentinel_asim_webrequest_hashes_field_values",
+            transformation=WebSessionHashesValuesTransformation(),
+            field_name_conditions=[IncludeFieldCondition(["Hashes"])],
+            rule_conditions=[RuleProcessingStateCondition("query_table", "imWebSession")],
+        ),
+        # Processing item to essentially ignore initiated field
+        ProcessingItem(
+            identifier="sentinel_asim_network_initiated_field",
+            transformation=DropDetectionItemTransformation(),
+            field_name_conditions=[IncludeFieldCondition(["Initiated"])],
+            rule_conditions=[LogsourceCondition(category="network_connection")],
+        ),
+    ]
+
 
 def _create_rule_error_items():
     """Exceptions/Errors ProcessingItems.

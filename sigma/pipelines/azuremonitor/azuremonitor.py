@@ -54,6 +54,7 @@ def _create_fieldmappings_item():
         transformation=DynamicFieldMappingTransformation(AZURE_MONITOR_FIELD_MAPPINGS),
     )
 
+
 ## Generic Field Mappings, keep this last
 ## Exclude any fields already mapped, e.g. if a table mapping has been applied.
 # This will fix the case where ProcessId is usually mapped to InitiatingProcessId, EXCEPT for the DeviceProcessEvent table where it stays as ProcessId.
@@ -102,7 +103,9 @@ def _create_replacement_items():
         ),
         ProcessingItem(
             identifier="azure_monitor_registry_key_replace_hkcr",
-            transformation=ReplaceStringTransformation(regex=r"(?i)(^HKCR)", replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"),
+            transformation=ReplaceStringTransformation(
+                regex=r"(?i)(^HKCR)", replacement=r"HKEY_LOCAL_MACHINE\\CLASSES"
+            ),
             field_name_conditions=[IncludeFieldCondition(REGISTRY_FIELDS)],
         ),
         ProcessingItem(
@@ -132,6 +135,7 @@ def _create_replacement_items():
             rule_conditions=[LogsourceCondition(category="network_connection")],
         ),
     ]
+
 
 def _get_valid_fields(table_name):
     """Get valid fields for a given table name"""
