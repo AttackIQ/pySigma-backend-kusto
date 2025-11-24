@@ -1,7 +1,5 @@
-from sigma.processing.transformations import (
-    DetectionItemFailureTransformation,
-    SigmaTransformationError,
-)
+from sigma.processing.transformations import DetectionItemFailureTransformation
+from sigma.exceptions import SigmaTransformationError
 from sigma.rule import SigmaDetectionItem
 
 
@@ -15,7 +13,7 @@ class InvalidFieldTransformation(DetectionItemFailureTransformation):
         field_name = detection_item.field
         if field_name:  # If no field name is set, don't raise an error because its a keyword
             self.message = f"Invalid SigmaDetectionItem field name encountered: {field_name}. " + self.message
-            raise SigmaTransformationError(self.message)
+            raise SigmaTransformationError(self.message, source=detection_item.source)
 
 
 class InvalidHashAlgorithmError(Exception):

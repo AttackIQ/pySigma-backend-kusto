@@ -10,8 +10,7 @@ from sigma.rule import SigmaRule
 class QueryTableSetCondition(RuleProcessingCondition):
     def match(
         self,
-        pipeline: "sigma.processing.pipeline.ProcessingPipeline",  # noqa: F821 # type: ignore
         rule: Union[SigmaRule, SigmaCorrelationRule],
     ) -> bool:
         """Match condition on Sigma rule."""
-        return pipeline.state.get("query_table", None) is not None
+        return self._pipeline.state.get("query_table", None) is not None

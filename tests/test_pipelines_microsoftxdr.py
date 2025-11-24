@@ -916,3 +916,136 @@ def test_microsoft_xdr_category_precedence(xdr_backend):
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+# pySigma 1.0.0 Compatibility Edge Case Tests - Microsoft XDR
+# These tests validate transformation compatibility with Breaking Change #2 (SigmaDetectionItem initialization)
+
+
+def test_microsoft_xdr_field_validation_with_hashes_field():
+    """
+    Test that the special-cased 'Hashes' field is allowed.
+    Edge case: Hashes is added to valid_fields in _get_valid_fields().
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rule_yaml = """
+        title: Test Hashes Field
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                Hashes: 'MD5=123'
+            condition: sel
+    """
+
+    # Should not raise error - Hashes is a valid field
+    result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
+    assert len(result) == 1
+
+
+def test_microsoft_xdr_username_transformation_with_domain():
+    """
+    Test Microsoft XDR username transformation with domain\\username format.
+    Edge case: Ensure transformation creates proper SigmaDetectionItem with SigmaString values.
+    This tests Breaking Change #2 compliance (no auto-conversion of plain types).
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rule_yaml = """
+        title: Username with Domain
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                User: DOMAIN\\username
+            condition: sel
+    """
+
+    result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
+    assert len(result) == 1
+    # Should have both AccountName and AccountDomain conditions
+    assert 'AccountName' in result[0]
+    assert 'AccountDomain' in result[0]
+
+
+def test_microsoft_xdr_field_mapping_transformation_order():
+    """
+    Test that field mappings are applied before field validation.
+    Edge case: A field that's invalid in the schema but has a mapping should be allowed.
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rule_yaml = """
+        title: Test Field Mapping
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                Image: C:\\Windows\\System32\\cmd.exe
+                CommandLine: whoami
+            condition: sel
+    """
+
+    # Image should be mapped to a valid XDR field
+    result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
+    assert len(result) == 1
+
+
+def test_microsoft_xdr_registry_key_replacement_transformation():
+    """
+    Test that registry key replacements work correctly.
+    Edge case: Ensure string replacements don't break with pySigma 1.0.0.
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rule_yaml = """
+        title: Registry Key Replacement
+        status: test
+        logsource:
+            category: registry_set
+            product: windows
+        detection:
+            sel:
+                TargetObject: HKLM\\Software\\Test
+            condition: sel
+    """
+
+    result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
+    assert len(result) == 1
+    # HKLM should be replaced with HKEY_LOCAL_MACHINE
+    assert 'HKEY_LOCAL_MACHINE' in result[0]
+    assert 'HKLM' not in result[0] or 'HKEY_LOCAL_MACHINE\\\\Software' in result[0]
+
+
+def test_microsoft_xdr_hashes_field_transformation():
+    """
+    Test that Hashes field transformation works correctly.
+    Edge case: Ensure hash extraction and field mapping works with pySigma 1.0.0.
+    """
+    backend = KustoBackend(processing_pipeline=microsoft_xdr_pipeline())
+
+    rule_yaml = """
+        title: Test Hashes Transformation
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                Hashes:
+                    - MD5=1234567890abcdef
+                    - SHA256=abcdef1234567890
+            condition: sel
+    """
+
+    result = backend.convert(SigmaCollection.from_yaml(rule_yaml))
+    assert len(result) == 1
+    # Should have hash fields
+    assert 'MD5' in result[0] or 'SHA256' in result[0]
