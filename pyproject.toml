@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "pySigma-backend-kusto"
-version = "0.4.5"
+version = "1.0.0"
 description = "pySigma Kusto backend"
-authors = ["Stephen Lincoln <stephen.lincoln@attackiq.com>"]
+authors = ["Stephen Lincoln <stephen@detections.ai>"]
 license = "LGPL-3.0-only"
 repository = "https://github.com/AttackIQ/pySigma-backend-kusto"
 packages = [
