@@ -4,12 +4,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 from sigma.conditions import ConditionOR
-from sigma.processing.transformations import (
-    DetectionItemTransformation,
-    FieldMappingTransformation,
-    Transformation,
-    ValueTransformation,
-)
+from sigma.processing.transformations import FieldMappingTransformation, Transformation
+from sigma.processing.transformations.base import DetectionItemTransformation, ValueTransformation
 from sigma.rule import SigmaDetection, SigmaDetectionItem
 from sigma.types import SigmaString, SigmaType
 
@@ -45,12 +41,11 @@ class DynamicFieldMappingTransformation(FieldMappingTransformation):
 
     def apply(
         self,
-        pipeline: "sigma.processing.pipeline.ProcessingPipeline",  # noqa: F821 # type: ignore
         rule: Union["SigmaRule", "SigmaCorrelationRule"],  # noqa: F821 # type: ignore
     ) -> None:
         """Apply dynamic mapping before the field name transformations."""
-        self.set_dynamic_mapping(pipeline)  # Dynamically update the mapping
-        super().apply(pipeline, rule)  # Call parent method to continue the transformation process
+        self.set_dynamic_mapping(self._pipeline)  # Dynamically update the mapping
+        super().apply(rule)  # Call parent method to continue the transformation process
 
 
 class GenericFieldMappingTransformation(FieldMappingTransformation):
@@ -179,16 +174,13 @@ class SetQueryTableStateTransformation(Transformation):
             if isinstance(detection_item, SigmaDetection):  # recurse into nested detection items
                 self.apply_detection(detection_item)
             else:
-                if (
-                    self.processing_item is None
-                    or self.processing_item.match_detection_item(self._pipeline, detection_item)
-                ) and (r := self.apply_detection_item(detection_item)) is not None:
+                if (self.processing_item is None or self.processing_item.match_detection_item(detection_item)) and (
+                    r := self.apply_detection_item(detection_item)
+                ) is not None:
                     self.processing_item_applied(detection.detection_items[i])
                     return r
 
-    def apply(self, pipeline: "ProcessingPipeline", rule: "SigmaRule") -> None:  # type: ignore  # noqa: F821
-        super().apply(pipeline, rule)
-
+    def apply(self, rule: "SigmaRule") -> None:  # type: ignore  # noqa: F821
         # Init table_name to None, will be set in the following if statements
         table_name = None
         # Set table_name based on the following priority:
@@ -196,8 +188,8 @@ class SetQueryTableStateTransformation(Transformation):
         if self.val:
             table_name = self.val
         # 2) If the query_table is already set in the pipeline state, use that value (e.g. set in a previous pipeline, like via YAML in sigma-cli for user-defined query tables)
-        elif pipeline.state.get("query_table"):
-            table_name = pipeline.state.get("query_table")
+        elif self._pipeline.state.get("query_table"):
+            table_name = self._pipeline.state.get("query_table")
         # 3) If the rule's logsource category is present in the category_to_table_mappings dictionary, use that value
         elif rule.logsource.category:
             category = rule.logsource.category
@@ -214,7 +206,9 @@ class SetQueryTableStateTransformation(Transformation):
         if table_name:
             if isinstance(table_name, list):
                 table_name = table_name[0]  # Use the first table if it's a list
-            pipeline.state["query_table"] = table_name
+            self._pipeline.state["query_table"] = table_name
+            # Mark this processing item as applied so that RuleProcessingItemAppliedCondition works
+            self.processing_item_applied(rule)
         else:
             raise SigmaTransformationError(
                 f"Unable to determine table name from rule.  The query table is determined in the following order of priority:\n"

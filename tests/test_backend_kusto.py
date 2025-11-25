@@ -168,7 +168,7 @@ def test_kusto_regex_query(microsoft365defender_backend: KustoBackend):
             'DeviceProcessEvents\n| where (ProcessCommandLine matches regex "foo.*bar" or '
             'ProcessCommandLine matches regex "-(W|R)\\\\s?(\\\\s|\\"|\')([0-9a-fA-F]{2}\\\\s?){2,20}(\\\\s|\\"|\')") and '
             'ProcessId =~ "foo"'
-            ]
+        ]
     )
 
 
@@ -477,7 +477,7 @@ def test_kusto_exists_expression(microsoft365defender_backend: KustoBackend):
         """
             )
         )
-        == ['DeviceProcessEvents\n| where isnotempty(ProcessCommandLine)']
+        == ["DeviceProcessEvents\n| where isnotempty(ProcessCommandLine)"]
     )
 
 
@@ -498,5 +498,5 @@ def test_kusto_not_exists_expression(microsoft365defender_backend: KustoBackend)
         """
             )
         )
-        == ['DeviceProcessEvents\n| where isempty(ProcessCommandLine)']
+        == ["DeviceProcessEvents\n| where isempty(ProcessCommandLine)"]
     )

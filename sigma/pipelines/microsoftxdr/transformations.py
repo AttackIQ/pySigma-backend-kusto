@@ -1,11 +1,8 @@
 from typing import Iterable, Optional, Union
 
-from sigma.processing.transformations import (
-    DetectionItemTransformation,
-    ValueTransformation,
-)
-from sigma.rule import SigmaDetection, SigmaDetectionItem, SigmaString
-from sigma.types import SigmaType
+from sigma.processing.transformations.base import DetectionItemTransformation, ValueTransformation
+from sigma.rule import SigmaDetection, SigmaDetectionItem
+from sigma.types import SigmaString, SigmaType
 
 from ..kusto_common.transformations import BaseHashesValuesTransformation
 
@@ -52,7 +49,9 @@ class SplitDomainUserTransformation(DetectionItemTransformation):
                     SigmaDetection(
                         [
                             SigmaDetectionItem(
-                                field=detection_item.field, modifiers=detection_item.modifiers, value=username
+                                field=detection_item.field,
+                                modifiers=detection_item.modifiers,
+                                value=[SigmaString(u) for u in username],
                             )
                         ]
                     )

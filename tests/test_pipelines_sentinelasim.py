@@ -278,3 +278,41 @@ def test_sentinel_asim_category_precedence(asim_backend):
 
     assert asim_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert asim_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+# pySigma 1.0.0 Compatibility Edge Case Tests - Cross-Pipeline
+# This test validates that our fix works across all pipeline implementations
+
+
+def test_all_pipelines_field_validation():
+    """
+    Test that field validation works across all three pipelines.
+    Edge case: Ensure our fix (SetQueryTableStateTransformation marking itself as applied) works for all pipeline variants.
+    This validates that the pySigma 1.0.0 compatibility fix applies universally.
+    """
+    from sigma.pipelines.azuremonitor import azure_monitor_pipeline
+    from sigma.pipelines.microsoftxdr import microsoft_xdr_pipeline
+    from sigma.pipelines.sentinelasim import sentinel_asim_pipeline
+
+    pipelines = [
+        ("Azure Monitor", azure_monitor_pipeline()),
+        ("Microsoft XDR", microsoft_xdr_pipeline()),
+        ("Sentinel ASIM", sentinel_asim_pipeline()),
+    ]
+
+    invalid_rule = """
+        title: Invalid Field Test
+        status: test
+        logsource:
+            category: process_creation
+            product: windows
+        detection:
+            sel:
+                CompletelyInvalidFieldName: value
+            condition: sel
+    """
+
+    for name, pipeline in pipelines:
+        backend = KustoBackend(processing_pipeline=pipeline)
+        with pytest.raises(SigmaTransformationError, match="Invalid SigmaDetectionItem field name"):
+            backend.convert(SigmaCollection.from_yaml(invalid_rule))
