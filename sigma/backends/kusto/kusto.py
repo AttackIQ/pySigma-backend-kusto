@@ -80,7 +80,7 @@ class KustoBackend(TextQueryBackend):
     endswith_expression: ClassVar[str] = "{field} endswith {value}"
     contains_expression: ClassVar[str] = "{field} contains {value}"
     wildcard_match_expression: ClassVar[Union[str, None]] = (
-        None  # Special expression if wildcards can't be matched with the eq_token operator
+        '{field} matches regex "{regex}"'  # Regular expression for wildcard matching when direct equality is not applicable. Fixes #34 if not as_in (logic implemented in convert_condition_as_in_expression)
     )
 
     # Regular expressions

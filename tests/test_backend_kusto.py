@@ -500,3 +500,26 @@ def test_kusto_not_exists_expression(microsoft365defender_backend: KustoBackend)
         )
         == ["DeviceProcessEvents\n| where isempty(ProcessCommandLine)"]
     )
+
+def test_kusto_wildcard_regex_conversion(microsoft365defender_backend: KustoBackend):
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
+            title: Test Wildcard Regex
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    Image: 'foo*bar'
+                condition: sel
+        """
+            )
+        )
+        == [
+            'DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar"'
+        ]
+    )
+
