@@ -501,7 +501,8 @@ def test_kusto_not_exists_expression(microsoft365defender_backend: KustoBackend)
         == ["DeviceProcessEvents\n| where isempty(ProcessCommandLine)"]
     )
 
-def test_kusto_wildcard_regex_conversion(microsoft365defender_backend: KustoBackend):
+def test_kusto_wildcard_regex_multi_char(microsoft365defender_backend: KustoBackend):
+    """Test multi-char wildcard (*) in middle of string converts to regex."""
     assert (
         microsoft365defender_backend.convert(
             SigmaCollection.from_yaml(
@@ -518,8 +519,94 @@ def test_kusto_wildcard_regex_conversion(microsoft365defender_backend: KustoBack
         """
             )
         )
-        == [
-            'DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar"'
-        ]
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar"']
+    )
+
+
+def test_kusto_wildcard_regex_single_char(microsoft365defender_backend: KustoBackend):
+    """Test single-char wildcard (?) converts to regex dot."""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
+            title: Test Single Char Wildcard
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    Image: 'foo?bar'
+                condition: sel
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.bar"']
+    )
+
+
+def test_kusto_wildcard_regex_multiple(microsoft365defender_backend: KustoBackend):
+    """Test multiple wildcards in string convert to regex."""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
+            title: Test Multiple Wildcards
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    Image: 'foo*bar*baz'
+                condition: sel
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar.*baz"']
+    )
+
+
+def test_kusto_wildcard_regex_mixed(microsoft365defender_backend: KustoBackend):
+    """Test mixed wildcards (? and *) convert to regex."""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                """
+            title: Test Mixed Wildcards
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    Image: 'foo?bar*'
+                condition: sel
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.bar.*"']
+    )
+
+
+def test_kusto_wildcard_regex_with_backslashes(microsoft365defender_backend: KustoBackend):
+    r"""Test wildcards with escaped backslashes convert to regex with proper escaping."""
+    assert (
+        microsoft365defender_backend.convert(
+            SigmaCollection.from_yaml(
+                r"""
+            title: Test Wildcards With Backslashes
+            status: test
+            logsource:
+                category: process_creation
+                product: windows
+            detection:
+                sel:
+                    Image: 'C:\Windows*\process.exe'
+                condition: sel
+        """
+            )
+        )
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "C:\\\\\\\\Windows.*\\\\\\\\process\\\\.exe"']
     )
 
