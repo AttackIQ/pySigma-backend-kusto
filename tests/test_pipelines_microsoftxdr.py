@@ -100,7 +100,7 @@ def test_microsoft_xdr_process_creation_simple(xdr_backend):
                 Image: val2
             condition: sel
     """
-    expected_result = ['DeviceProcessEvents\n| where ProcessCommandLine =~ "val1" and FolderPath =~ "val2"']
+    expected_result = ['DeviceProcessEvents\n| where ProcessCommandLine =~ "val1" and (FolderPath =~ "val2" or ProcessVersionInfoOriginalFileName =~ "val2")']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -115,11 +115,11 @@ def test_microsoft_xdr_image_load_simple(xdr_backend):
             product: windows
         detection:
             sel:
-                ImageLoaded: val1
+                ImageLoaded: 'C:\\Windows\\System32\\ntdll.dll'
                 sha1: val2
             condition: sel
     """
-    expected_result = ['DeviceImageLoadEvents\n| where FolderPath =~ "val1" and SHA1 =~ "val2"']
+    expected_result = ['DeviceImageLoadEvents\n| where FolderPath =~ "C:\\\\Windows\\\\System32\\\\ntdll.dll" and SHA1 =~ "val2"']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -138,7 +138,7 @@ def test_microsoft_xdr_file_access_simple(xdr_backend):
                 Image: val2
             condition: sel
     """
-    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and (InitiatingProcessFolderPath =~ "val2" or InitiatingProcessVersionInfoOriginalFileName =~ "val2")']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -157,7 +157,7 @@ def test_microsoft_xdr_file_change_simple(xdr_backend):
                 Image: val2
             condition: sel
     """
-    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and (InitiatingProcessFolderPath =~ "val2" or InitiatingProcessVersionInfoOriginalFileName =~ "val2")']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -176,7 +176,7 @@ def test_microsoft_xdr_file_delete_simple(xdr_backend):
                 Image: val2
             condition: sel
     """
-    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and (InitiatingProcessFolderPath =~ "val2" or InitiatingProcessVersionInfoOriginalFileName =~ "val2")']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -195,7 +195,7 @@ def test_microsoft_xdr_file_event_simple(xdr_backend):
                 Image: val2
             condition: sel
     """
-    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and (InitiatingProcessFolderPath =~ "val2" or InitiatingProcessVersionInfoOriginalFileName =~ "val2")']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -214,7 +214,7 @@ def test_microsoft_xdr_file_rename_simple(xdr_backend):
                 Image: val2
             condition: sel
     """
-    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and InitiatingProcessFolderPath =~ "val2"']
+    expected_result = ['DeviceFileEvents\n| where FolderPath =~ "val1" and (InitiatingProcessFolderPath =~ "val2" or InitiatingProcessVersionInfoOriginalFileName =~ "val2")']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -233,7 +233,7 @@ def test_microsoft_xdr_registry_add_simple(xdr_backend):
                 TargetObject: val2
             condition: sel
     """
-    expected_result = ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    expected_result = ['DeviceRegistryEvents\n| where (InitiatingProcessFolderPath =~ "val1" or InitiatingProcessVersionInfoOriginalFileName =~ "val1") and RegistryKey =~ "val2"']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -252,7 +252,7 @@ def test_microsoft_xdr_registry_delete_simple(xdr_backend):
                 TargetObject: val2
             condition: sel
     """
-    expected_result = ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    expected_result = ['DeviceRegistryEvents\n| where (InitiatingProcessFolderPath =~ "val1" or InitiatingProcessVersionInfoOriginalFileName =~ "val1") and RegistryKey =~ "val2"']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -271,7 +271,7 @@ def test_microsoft_xdr_registry_event_simple(xdr_backend):
                 TargetObject: val2
             condition: sel
     """
-    expected_result = ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    expected_result = ['DeviceRegistryEvents\n| where (InitiatingProcessFolderPath =~ "val1" or InitiatingProcessVersionInfoOriginalFileName =~ "val1") and RegistryKey =~ "val2"']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -290,7 +290,7 @@ def test_microsoft_xdr_registry_set_simple(xdr_backend):
                 TargetObject: val2
             condition: sel
     """
-    expected_result = ['DeviceRegistryEvents\n| where InitiatingProcessFolderPath =~ "val1" and RegistryKey =~ "val2"']
+    expected_result = ['DeviceRegistryEvents\n| where (InitiatingProcessFolderPath =~ "val1" or InitiatingProcessVersionInfoOriginalFileName =~ "val1") and RegistryKey =~ "val2"']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -326,7 +326,7 @@ def test_microsoft_xdr_process_creation_field_mapping(xdr_backend):
     """
     expected_result = [
         "DeviceProcessEvents\n| "
-        'where FolderPath =~ "C:\\\\Path\\\\to\\\\notmalware.exe" and '
+        'where (FolderPath =~ "C:\\\\Path\\\\to\\\\notmalware.exe" or ProcessVersionInfoOriginalFileName =~ "notmalware.exe") and '
         "ProcessVersionInfoProductVersion == 1 and "
         'ProcessVersionInfoFileDescription =~ "A Description" and '
         'ProcessVersionInfoProductName =~ "pySigma" and '
@@ -374,7 +374,7 @@ def test_microsoft_xdr_image_load_field_mapping(xdr_backend):
     """
     expected_result = [
         "DeviceImageLoadEvents\n| "
-        'where InitiatingProcessId == 1 and InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notmalware.exe" and '
+        'where InitiatingProcessId == 1 and (InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notmalware.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "notmalware.exe") and '
         'FolderPath =~ "C:\\\\Temp\\\\definitelynotmalware.exe" and InitiatingProcessVersionInfoProductVersion == 1 '
         'and InitiatingProcessVersionInfoFileDescription =~ "A Description" and '
         'InitiatingProcessVersionInfoProductName =~ "A Product" and '
@@ -409,7 +409,7 @@ def test_microsoft_xdr_file_event_field_mapping(xdr_backend):
     """
     expected_result = [
         "DeviceFileEvents\n| "
-        'where InitiatingProcessId == 1 and InitiatingProcessFolderPath =~ "C:\\\\Path\\\\To\\\\process.exe" and '
+        'where InitiatingProcessId == 1 and (InitiatingProcessFolderPath =~ "C:\\\\Path\\\\To\\\\process.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "process.exe") and '
         'FolderPath =~ "C:\\\\Temp\\\\passwords.txt" and RequestAccountName =~ "username" and '
         'MD5 =~ "e708864855f3bb69c4d9a213b9108b9f" and SHA1 =~ "00ea1da4192a2030f9ae023de3b3143ed647bbab" and '
         'SHA256 =~ "6bbb0da1891646e58eb3e6a63af3a6fc3c8eb5a0d44824cba581d2e14a0450cf"'
@@ -439,7 +439,7 @@ def test_microsoft_xdr_registry_event_field_mapping(xdr_backend):
     expected_result = [
         "DeviceRegistryEvents\n| "
         'where ActionType =~ "RegistryKeyCreated" and InitiatingProcessId == 1 and '
-        'InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\reg.exe" and '
+        '(InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\reg.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "reg.exe") and '
         'RegistryKey =~ "HKEY_LOCAL_MACHINE\\\\SYSTEM\\\\ControlSet001\\\\services\\\\TrustedInstaller" and '
         'RegistryValueData =~ "attackiq" and InitiatingProcessAccountName =~ "username"'
     ]
@@ -471,7 +471,7 @@ def test_microsoft_xdr_network_connection_field_mapping(xdr_backend):
     expected_result = [
         "DeviceNetworkEvents\n| "
         "where InitiatingProcessId == 1 and "
-        'InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notcobaltstrike.exe" and '
+        '(InitiatingProcessFolderPath =~ "C:\\\\Temp\\\\notcobaltstrike.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "notcobaltstrike.exe") and '
         'InitiatingProcessAccountName =~ "admin" and Protocol =~ "TCP" and LocalIP =~ "127.0.0.1" and '
         'LocalPort == 12345 and RemoteIP =~ "1.2.3.4" and RemotePort == 50050 and '
         'RemoteUrl =~ "notanatp.net"'
@@ -624,7 +624,7 @@ def test_microsoft_xdr_pipeline_parent_image(xdr_backend):
     """
     expected_result = [
         "DeviceFileEvents\n| "
-        'where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\whoami.exe" and '
+        'where (InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\whoami.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "whoami.exe") and '
         'InitiatingProcessParentFileName =~ "cmd.exe"'
     ]
 
@@ -651,6 +651,29 @@ def test_microsoft_xdr_pipeline_parent_image_false(xdr_backend):
         KustoBackend(processing_pipeline=microsoft_xdr_pipeline(transform_parent_image=False)).convert(
             SigmaCollection.from_yaml(yaml_rule)
         )
+
+
+def test_microsoft_xdr_pipeline_image_to_original_filename_disabled(xdr_backend):
+    yaml_rule = """
+        title: Test
+        status: test
+        logsource:
+            category: file_event
+            product: windows
+        detection:
+            sel1:
+                Image: C:\\Windows\\System32\\whoami.exe
+                ParentImage: C:\\Windows\\System32\\cmd.exe  
+            condition: any of sel*
+    """
+    expected_result = [
+        "DeviceFileEvents\n| "
+        'where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\whoami.exe" and '
+        'InitiatingProcessParentFileName =~ "cmd.exe"'
+    ]
+
+    assert KustoBackend(processing_pipeline=microsoft_xdr_pipeline(transform_image_to_original_file_name=False)).convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert KustoBackend(processing_pipeline=microsoft_xdr_pipeline(transform_image_to_original_file_name=False)).convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
 
 
 def test_microsoft_xdr_pipeline_unsupported_rule_type(xdr_backend):
@@ -795,7 +818,7 @@ def test_microsoft_xdr_pipeline_custom_table(xdr_backend):
                 Image: actuallyafileevent.exe
             condition: sel
     """
-    expected_result = ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe"']
+    expected_result = ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "actuallyafileevent.exe"']
 
     assert (
         KustoBackend(processing_pipeline=microsoft_xdr_pipeline(query_table="DeviceFileEvents")).convert(
@@ -816,7 +839,7 @@ def test_microsoft_xdr_pipeline_custom_table_invalid_category(xdr_backend):
                 Image: actuallyafileevent.exe
             condition: sel
     """
-    expected_result = ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe"']
+    expected_result = ["DeviceFileEvents\n| " 'where InitiatingProcessFolderPath =~ "actuallyafileevent.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "actuallyafileevent.exe"']
 
     assert (
         KustoBackend(processing_pipeline=microsoft_xdr_pipeline(query_table="DeviceFileEvents")).convert(
@@ -889,7 +912,7 @@ def test_microsoft_xdr_eventid_mapping(xdr_backend):
             condition: sel
     """
     # EventID 1 should map to process_creation category -> DeviceProcessEvents table
-    expected_result = ['DeviceProcessEvents\n| where FolderPath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"']
+    expected_result = ['DeviceProcessEvents\n| where FolderPath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe" or ProcessVersionInfoOriginalFileName =~ "cmd.exe"']
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
@@ -911,12 +934,11 @@ def test_microsoft_xdr_category_precedence(xdr_backend):
     """
     # Should use DeviceFileEvents table based on category, not DeviceProcessEvents from EventID
     expected_result = [
-        'DeviceFileEvents\n| where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe"'
+        'DeviceFileEvents\n| where InitiatingProcessFolderPath =~ "C:\\\\Windows\\\\System32\\\\cmd.exe" or InitiatingProcessVersionInfoOriginalFileName =~ "cmd.exe"'
     ]
 
     assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
     assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
-
 
 # pySigma 1.0.0 Compatibility Edge Case Tests - Microsoft XDR
 # These tests validate transformation compatibility with Breaking Change #2 (SigmaDetectionItem initialization)
@@ -1157,3 +1179,190 @@ detection:
     assert "test.exe" in results[2]
     assert "DeviceProcessEvents" in results[3]
     assert "cmd.exe" in results[3]
+
+
+
+def test_microsoft_xdr_create_remote_thread(xdr_backend):
+    """Test create_remote_thread category mapping to DeviceEvents with ActionType filter"""
+    yaml_rule = """
+        title: Remote Thread Created In KeePass.EXE
+        status: test
+        logsource:
+            product: windows
+            category: create_remote_thread
+        detection:
+            selection:
+                TargetImage|endswith: '\\KeePass.exe'
+            condition: selection
+    """
+    expected_result = [
+        'DeviceEvents\n| where ActionType =~ "CreateRemoteThreadApiCall" and FileName =~ "KeePass.exe"'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_create_remote_thread_with_source_image(xdr_backend):
+    """Test create_remote_thread with SourceImage field mapping"""
+    yaml_rule = """
+        title: Remote Thread Created by Suspicious Process
+        status: test
+        logsource:
+            product: windows
+            category: create_remote_thread
+        detection:
+            selection:
+                SourceImage|endswith: '\\powershell.exe'
+                TargetImage|endswith: '\\lsass.exe'
+            condition: selection
+    """
+    expected_result = [
+        'DeviceEvents\n| where ActionType =~ "CreateRemoteThreadApiCall" and '
+        '(InitiatingProcessFolderPath endswith "\\\\powershell.exe" and FileName =~ "lsass.exe")'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_create_remote_thread_full_path(xdr_backend):
+    """Test create_remote_thread with full path TargetImage - should split into FolderPath and FileName"""
+    yaml_rule = """
+        title: Remote Thread Created In Specific Path
+        status: test
+        logsource:
+            product: windows
+            category: create_remote_thread
+        detection:
+            selection:
+                TargetImage: 'C:\\Windows\\System32\\lsass.exe'
+            condition: selection
+    """
+    expected_result = [
+        'DeviceEvents\n| where ActionType =~ "CreateRemoteThreadApiCall" and '
+        '(FolderPath =~ "C:\\\\Windows\\\\System32" and FileName =~ "lsass.exe")'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_pipe_created_cobaltstrike(xdr_backend):
+    """Test CobaltStrike Named Pipe Patterns detection"""
+    yaml_rule = """
+        title: CobaltStrike Named Pipe Patterns  
+        status: test
+        logsource:
+            product: windows
+            category: pipe_created
+        detection:
+            selection_malleable_profile_generic:
+                PipeName|startswith:
+                    - '\\DserNamePipe'
+                    - '\\msrpc_'
+                    - '\\win_svc'
+                    - '\\ntsvcs'
+            condition: selection_malleable_profile_generic
+    """
+    expected_result = [
+        'DeviceEvents\n'
+        '| where ActionType =~ "NamedPipeEvent"\n'
+        '| extend SanitizedPipeName = replace_string(tostring(parse_json(AdditionalFields).PipeName), "\\\\Device\\\\NamedPipe\\\\", "")\n'
+        '| where (SanitizedPipeName startswith "DserNamePipe" or '
+        'SanitizedPipeName startswith "msrpc_" or SanitizedPipeName startswith "win_svc" or '
+        'SanitizedPipeName startswith "ntsvcs")'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_pipe_created_multiple_conditions(xdr_backend):
+    """Test pipe_created with multiple conditions"""
+    yaml_rule = """
+        title: Suspicious Named Pipe  
+        status: test
+        logsource:
+            product: windows
+            category: pipe_created
+        detection:
+            selection:
+                PipeName|contains:
+                    - 'msagent_'
+                    - 'DserNamePipe'
+                    - 'postex_'
+            filter:
+                PipeName|endswith: '_legitpipe'
+            condition: selection and not filter
+    """
+    expected_result = [
+        'DeviceEvents\n'
+        '| where ActionType =~ "NamedPipeEvent"\n'
+        '| extend SanitizedPipeName = replace_string(tostring(parse_json(AdditionalFields).PipeName), "\\\\Device\\\\NamedPipe\\\\", "")\n'
+        '| where ((SanitizedPipeName contains "msagent_" or '
+        'SanitizedPipeName contains "DserNamePipe" or SanitizedPipeName contains "postex_") and '
+        '(not(SanitizedPipeName endswith "_legitpipe")))'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_pipe_created_with_image(xdr_backend):
+    """Test pipe_created with Image condition to filter by process that created the pipe"""
+    yaml_rule = """
+        title: Suspicious Named Pipe Created By Specific Process
+        status: test
+        logsource:
+            product: windows
+            category: pipe_created
+        detection:
+            selection:
+                Image|endswith: '\\powershell.exe'
+                PipeName|contains: 'PSHost'
+            condition: selection
+    """
+    expected_result = [
+        'DeviceEvents\n| where ActionType =~ "NamedPipeEvent"\n| extend SanitizedPipeName = replace_string(tostring(parse_json(AdditionalFields).PipeName), "\\\\Device\\\\NamedPipe\\\\", "")\n'
+        '| where ((InitiatingProcessFolderPath endswith "\\\\powershell.exe" or InitiatingProcessVersionInfoOriginalFileName endswith "powershell.exe") and '
+        'SanitizedPipeName contains "PSHost")'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
+
+
+def test_microsoft_xdr_driver_load_mapping(xdr_backend):
+    yaml_rule = """
+    title: Malicious Driver Load By Name
+    id: 39b64854-5497-4b57-a448-40977b8c9679
+    status: test
+    description: Detects loading of known malicious drivers via the file name of the drivers.
+    logsource:
+        product: windows
+        category: driver_load
+    detection:
+        selection:
+            ImageLoaded|endswith:
+                - '\\Public\\wfshbr64.sys'
+                - '\\malicious.sys'
+            ImageLoaded|contains:
+                - ':\\Public\\'
+                - ':\\Public\\malicious.sys'
+            ImageLoaded|startswith:
+                - 'C:\\Public\\'
+            Hashes:
+                - 'SHA256=8B9AD98944AC9886EA4CB07700E71B78BE4A2740934BB7E46CA3B56A7C59AD24'
+        condition: selection
+    """
+
+    expected_result = [
+        "DeviceEvents\n| "
+        'where ActionType =~ "DriverLoad" and (((FolderPath endswith "\\\\Public" and FileName =~ "wfshbr64.sys") or FileName =~ "malicious.sys") '
+        'and (FolderPath contains ":\\\\Public" or (FolderPath contains ":\\\\Public" and FileName contains "malicious.sys")) and FolderPath startswith "C:\\\\Public" and '
+        'SHA256 =~ "8B9AD98944AC9886EA4CB07700E71B78BE4A2740934BB7E46CA3B56A7C59AD24")'
+    ]
+
+    assert xdr_backend.convert(SigmaCollection.from_yaml(yaml_rule)) == expected_result
+    assert xdr_backend.convert_rule(SigmaRule.from_yaml(yaml_rule)) == expected_result
