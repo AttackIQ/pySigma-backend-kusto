@@ -521,7 +521,7 @@ def test_kusto_wildcard_regex_multi_char(microsoft365defender_backend: KustoBack
         """
             )
         )
-        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar"']
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar" or ProcessVersionInfoOriginalFileName matches regex "foo.*bar"']
     )
 
 
@@ -543,7 +543,7 @@ def test_kusto_wildcard_regex_single_char(microsoft365defender_backend: KustoBac
         """
             )
         )
-        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.bar"']
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.bar" or ProcessVersionInfoOriginalFileName matches regex "foo.bar"']
     )
 
 
@@ -565,7 +565,7 @@ def test_kusto_wildcard_regex_multiple(microsoft365defender_backend: KustoBacken
         """
             )
         )
-        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar.*baz"']
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.*bar.*baz" or ProcessVersionInfoOriginalFileName matches regex "foo.*bar.*baz"']
     )
 
 
@@ -587,7 +587,7 @@ def test_kusto_wildcard_regex_mixed(microsoft365defender_backend: KustoBackend):
         """
             )
         )
-        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.bar.*"']
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "foo.bar.*" or ProcessVersionInfoOriginalFileName matches regex "foo.bar.*"']
     )
 
 
@@ -609,6 +609,6 @@ def test_kusto_wildcard_regex_with_backslashes(microsoft365defender_backend: Kus
         """
             )
         )
-        == ['DeviceProcessEvents\n| where FolderPath matches regex "C:\\\\\\\\Windows.*\\\\\\\\process\\\\.exe"']
+        == ['DeviceProcessEvents\n| where FolderPath matches regex "C:\\\\\\\\Windows.*\\\\\\\\process\\\\.exe" or ProcessVersionInfoOriginalFileName =~ "process.exe"']
     )
 
