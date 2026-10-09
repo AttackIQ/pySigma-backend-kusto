@@ -6,11 +6,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_URL = "https://api.github.com/repos/MicrosoftDocs/defender-docs/contents/defender-xdr"
 BASE_URL = "https://learn.microsoft.com/en-us/defender-xdr"
 HEADERS = {"Accept": "text/markdown"}
 
-OUTPUT_FILE = "sigma/pipelines/microsoftxdr/tables_og.py"
+OUTPUT_FILE = "sigma/pipelines/microsoftxdr/tables.py"
 
 
 def fetch_content(file_name: str) -> str:
