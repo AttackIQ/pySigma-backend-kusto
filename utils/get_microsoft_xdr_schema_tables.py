@@ -1,72 +1,82 @@
-import base64
-import os
-import re
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict
 
 import requests
-import yaml
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# GitHub API configuration
-GITHUB_API_KEY = os.getenv("GITHUB_API_KEY")
-BASE_URL = "https://api.github.com/repos/MicrosoftDocs/defender-docs/contents/defender-xdr"
-HEADERS = {"Accept": "application/vnd.github.v3+json"}
-if GITHUB_API_KEY:
-    HEADERS["Authorization"] = f"token {GITHUB_API_KEY}"
+BASE_URL = "https://learn.microsoft.com/en-us/defender-xdr"
+HEADERS = {"Accept": "text/markdown"}
 
 OUTPUT_FILE = "sigma/pipelines/microsoftxdr/tables.py"
 
 
 def fetch_content(file_name: str) -> str:
-    """Fetch the file content from GitHub and decode it."""
-    url = f"{BASE_URL}/{file_name}"
+    """Fetch the file content from MS Learn and decode it."""
+    url = f"{BASE_URL}/{file_name}?accept=text/markdown"
     response = requests.get(url, headers=HEADERS)
     if response.ok:
-        return base64.b64decode(response.json()["content"]).decode("utf-8")
+        return response.content.decode("utf-8")
     print(f"Failed to retrieve content for {file_name}: {response.reason}")
     return None
 
+def parse_markdown(content: str) -> dict[str, str]:
+    """Divide Markdown content into sections based on headers"""
+    lines = content.splitlines()
+    sections = {}
 
-def extract_table_urls(toc_content: str) -> List[str]:
-    """Extract table URLs from the TOC.yml file."""
-    toc_data = yaml.safe_load(toc_content)
-    data_schema_section = toc_data[0]["items"]
-    for section_name in [
-        "Investigate and respond to threats",
-        "Search for threats with advanced hunting",
-        "Data schema",
-    ]:
-        data_schema_section = next((item for item in data_schema_section if item.get("name") == section_name), None)[
-            "items"
-        ]
-    return [item["href"] for item in data_schema_section[2:] if "href" in item]
+    # Create a fallback if there's no initial header
+    current_header = "Introduction"
+    current_content = []
 
+    for line in lines:
+        if line.startswith("#"):
+            if current_content:
+                sections[current_header] = "\n".join(current_content).strip()
+            current_header = line.replace("#", "").strip()
+            current_content = []
+        else:
+            current_content.append(line)
+
+    if current_content:
+        sections[current_header] = "\n".join(current_content).strip()
+
+    return sections
+
+def extract_table_urls(toc_content: str) -> list[dict[str, str]]:
+    """Extract table URLs from the MS Learn file."""
+    toc_data = parse_markdown(toc_content)
+    data_schema_section = toc_data.get("Learn the schema tables").split("\n")
+
+    table_urls = []
+
+    for line in data_schema_section:
+        if line.startswith("|"):
+            table_info = line.split("|")[1]
+            if "(" in table_info and ")" in table_info and "[" in table_info and "]" in table_info:
+                table_name = table_info.split("[")[1].split("]")[0]
+                table_url = table_info.split("(")[1].split(")")[0]
+                table_urls.append({"name": table_name, "url": table_url})
+    return table_urls
 
 def extract_table_schema(content: str) -> dict:
     """Extract table schema from markdown content."""
-    match = re.search(r"\|\s?Column name\s?\|\s?Data type\s?\|\s?Description\s?\|([\s\S]+?)\n\n", content)
-    if not match:
-        return {}
-
+    lines = content.split("\n")
     schema_data = {}
-    for row in match.group(1).strip().split("\n")[1:]:
-        columns = [col.strip() for col in row.strip("|").split("|")]
-        if len(columns) == 3:
-            schema_data[columns[0]] = {"data_type": columns[1], "description": columns[2]}
+
+    for line in lines:
+        if line.startswith("|") and not line.startswith("| Column") and not line.startswith("| -"):
+            parts = line.split("|")
+            if len(parts) == 5:
+                schema_data[parts[1].strip().replace("`", "")] = {"data_type": parts[2].strip().replace("`", ""), "description": parts[3].strip()}
+
     return schema_data
 
-
-def process_table(file_path: str) -> dict:
+def process_table(table_name: str, table_url: str) -> dict:
     """Process a table file and extract the schema."""
-    content = fetch_content(file_path)
-    if not content:
-        return {}
-
-    table_name = re.search(r"^# (.+)", content, re.MULTILINE)
-    table_name = table_name.group(1) if table_name else "Unknown"
+    content = fetch_content(table_url)
+    
     return {table_name: extract_table_schema(content)}
 
 
@@ -88,16 +98,14 @@ def write_schema(output_file: str, schema_tables: Dict[str, dict]):
 
 def get_all_tables() -> dict:
     """Retrieve all tables from the TOC and process them."""
-    toc_content = fetch_content("TOC.yml")
+    toc_content = fetch_content("advanced-hunting-schema-tables")
     if not toc_content:
         return {}
     table_urls = extract_table_urls(toc_content)
-    return {table: schema for url in table_urls for table, schema in process_table(url).items()}
+    return {table: schema for item in table_urls for table, schema in process_table(item["name"], item["url"]).items()}
 
 
 if __name__ == "__main__":
-    if not GITHUB_API_KEY:
-        print("Warning: GITHUB_API_KEY not set. You may encounter rate limiting.")
     tables = get_all_tables()
     write_schema(OUTPUT_FILE, tables)
     print(f"Schema written to {OUTPUT_FILE}")
